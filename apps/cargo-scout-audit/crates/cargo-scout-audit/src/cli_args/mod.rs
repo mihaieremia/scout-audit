@@ -85,10 +85,6 @@ impl BlockChain {
     }
 
     pub fn get_toolchain(&self, metadata: &Metadata) -> Result<String> {
-        if matches!(self, Self::Soroban) {
-            return Ok("nightly".to_string());
-        }
-
         // First try to get the project's active toolchain
         if let Some(toolchain) = Self::get_project_toolchain(metadata)? {
             return Ok(toolchain);

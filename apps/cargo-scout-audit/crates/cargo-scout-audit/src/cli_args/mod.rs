@@ -85,6 +85,10 @@ impl BlockChain {
     }
 
     pub fn get_toolchain(&self, metadata: &Metadata) -> Result<String> {
+        if matches!(self, Self::Soroban) {
+            return Ok("nightly".to_string());
+        }
+
         // First try to get the project's active toolchain
         if let Some(toolchain) = Self::get_project_toolchain(metadata)? {
             return Ok(toolchain);
@@ -141,7 +145,7 @@ pub struct Cli {
 
 #[cfg(test)]
 mod tests {
-    use super::BlockChain;
+    use super::{BlockChain, has_target_arg};
 
     #[test]
     fn parses_dated_nightly_with_target_triple() {
@@ -166,6 +170,18 @@ mod tests {
     fn rejects_non_nightly() {
         let toolchain = BlockChain::parse_nightly_toolchain("1.89-x86_64-unknown-linux-gnu");
         assert!(toolchain.is_none());
+    }
+
+    #[test]
+    fn detects_equals_target_arg() {
+        let args = vec!["--target=wasm32v1-none".to_string()];
+        assert!(has_target_arg(&args));
+    }
+
+    #[test]
+    fn detects_split_target_arg() {
+        let args = vec!["--target".to_string(), "wasm32v1-none".to_string()];
+        assert!(has_target_arg(&args));
     }
 }
 
@@ -304,14 +320,19 @@ pub struct Scout {
 
 impl Scout {
     pub fn prepare_args(&mut self, blockchain: BlockChain) {
-        // Only add default target args if not a substrate-pallet project
-        let is_substrate_pallet = matches!(blockchain, BlockChain::SubstratePallets);
-        if !is_substrate_pallet && !self.args.iter().any(|x| x.contains("--target=")) {
-            self.args.extend([
-                "--target=wasm32-unknown-unknown".to_string(),
-                "--no-default-features".to_string(),
-                "-Zbuild-std=std,core,alloc".to_string(),
-            ]);
+        if !has_target_arg(&self.args) {
+            match blockchain {
+                BlockChain::Soroban => self.args.extend([
+                    "--target=wasm32v1-none".to_string(),
+                    "--no-default-features".to_string(),
+                ]),
+                BlockChain::Ink => self.args.extend([
+                    "--target=wasm32-unknown-unknown".to_string(),
+                    "--no-default-features".to_string(),
+                    "-Zbuild-std=std,core,alloc".to_string(),
+                ]),
+                BlockChain::SubstratePallets => {}
+            }
         }
 
         if !self.debug {
@@ -360,4 +381,9 @@ impl Scout {
     pub fn get_fail_path(&self) -> Option<PathBuf> {
         self.cicd.as_ref().map(|path| path.join("FAIL"))
     }
+}
+
+fn has_target_arg(args: &[String]) -> bool {
+    args.iter()
+        .any(|arg| arg == "--target" || arg.starts_with("--target="))
 }

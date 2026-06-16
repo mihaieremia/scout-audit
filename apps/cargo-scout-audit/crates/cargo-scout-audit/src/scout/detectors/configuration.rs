@@ -1,18 +1,19 @@
-use crate::{cli_args::BlockChain, util::logger::TracedError};
+use crate::{
+    cli_args::BlockChain,
+    consts::{SCOUT_BRANCH, SCOUT_REPO},
+    util::logger::TracedError,
+};
 use anyhow::{Context, Ok, Result, anyhow, bail};
 use cargo::core::{Dependency, GitReference, SourceId};
 use cargo_metadata::Metadata;
 use git2::{RemoteCallbacks, Repository};
-use std::{
-    env,
-    path::{Path, PathBuf},
-};
+use std::path::{Path, PathBuf};
 use tempfile::TempDir;
 use thiserror::Error;
 
 // Constants
-const SCOUT_REPO_URL: &str = "https://github.com/CoinFabrik/scout-audit";
 const DETECTORS_BASE_PATH: &str = "nightly";
+const DEFAULT_DETECTORS_TOOLCHAIN: &str = "2025-08-07";
 const LOCAL_BASE_DETECTOR_PATH: &str = "rust";
 const LIBRARY_NAME: &str = "library";
 
@@ -90,7 +91,13 @@ impl DetectorsConfiguration {
 
     fn get_root_detector_path(base: &str, toolchain: &str) -> String {
         // Extract just the date part from the toolchain (e.g., "2025-08-07" from "nightly-2025-08-07")
-        let date = toolchain.strip_prefix("nightly-").unwrap_or(toolchain);
+        let date = toolchain
+            .strip_prefix("nightly-")
+            .unwrap_or(if toolchain == "nightly" {
+                DEFAULT_DETECTORS_TOOLCHAIN
+            } else {
+                toolchain
+            });
         format!("{base}/{date}/detectors")
     }
 
@@ -108,15 +115,12 @@ impl DetectorsConfiguration {
     /// Returns list of detectors from remote repository.
     #[tracing::instrument(name = "GET REMOTE DETECTORS CONFIGURATION", skip_all, level = "debug")]
     fn get_remote_detectors_configuration(blockchain: BlockChain, toolchain: &str) -> Result<Self> {
-        let scout_version = env!("CARGO_PKG_VERSION");
-        let default_branch = format!("release/{scout_version}");
-
-        if !check_branch_exists(SCOUT_REPO_URL, &default_branch)? {
+        if !check_branch_exists(SCOUT_REPO, SCOUT_BRANCH)? {
             bail!(DetectorsConfigError::BranchNotFound);
         }
 
         let dependency =
-            create_git_dependency(&default_branch).map_err(DetectorsConfigError::GitDependency)?;
+            create_git_dependency(SCOUT_BRANCH).map_err(DetectorsConfigError::GitDependency)?;
         let source_id = dependency.source_id();
 
         let base_config = DetectorConfig::with_dependency_and_path(
@@ -183,7 +187,7 @@ fn check_branch_exists(url: &str, branch: &str) -> Result<bool> {
 #[tracing::instrument(name = "CREATE GIT DEPENDENCY", skip_all, level = "debug")]
 fn create_git_dependency(branch: &str) -> Result<Dependency> {
     let source_id = SourceId::for_git(
-        &reqwest::Url::parse(SCOUT_REPO_URL)?,
+        &reqwest::Url::parse(SCOUT_REPO)?,
         GitReference::Branch(branch.to_string()),
     )?;
 

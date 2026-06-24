@@ -2,18 +2,12 @@
   "rust-analyzer.rustfmt.extraArgs": ["+nightly"],
   "rust-analyzer.showUnlinkedFileNotification": false,
   "rust-analyzer.linkedProjects": [
-    "apps/cargo-scout-audit/crates/scout-driver/Cargo.toml",
     "apps/cargo-scout-audit/crates/cargo-scout-audit/Cargo.toml",
-    "apps/cargo-scout-audit/crates/cli-args/Cargo.toml",
-    "detectors/ink/Cargo.toml",
-    "detectors/soroban/Cargo.toml",
-    "detectors/substrate-pallets/Cargo.toml",
-    "test-cases/ink/Cargo.toml",
-    "test-cases/soroban/Cargo.toml",
-    "test-cases/substrate-pallets/Cargo.toml",
-    "common/Cargo.toml",
-    "common/declarations/Cargo.toml",
-    "common/detectors/Cargo.toml",
-    "common/macros/Cargo.toml"
-  ]
+    "apps/cargo-scout-audit/crates/scout-driver/Cargo.toml",
+    "nightly/2026-05-28/common/Cargo.toml",
+    "nightly/2026-05-28/detectors/soroban/Cargo.toml",
+    "nightly/2026-05-28/detectors/rust/Cargo.toml",
+    "scout-utils/Cargo.toml"
+  ],
+  "//": "test-cases/ are intentionally vulnerable fixtures with line-pinned expected.json manifests; they are excluded from rust-analyzer so their deliberate warnings don't surface as diagnostics."
 }

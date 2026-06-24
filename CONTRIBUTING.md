@@ -13,25 +13,25 @@ toolchain.
 
 Detectors compile against rustc internals, so the toolchain is pinned and
 must include the `rustc-dev` and `llvm-tools-preview` components. The pin
-lives in `nightly/2025-08-07/.../rust-toolchain` files, e.g.
-`nightly/2025-08-07/common/rust-toolchain`:
+lives in `nightly/2026-05-28/.../rust-toolchain` files, e.g.
+`nightly/2026-05-28/common/rust-toolchain`:
 
 ```toml
 [toolchain]
-channel = "nightly-2025-08-07"
+channel = "nightly-2026-05-28"
 components = ["llvm-tools-preview", "rustc-dev"]
 ```
 
 Install the toolchain, components, and the Soroban contract target:
 
 ```bash
-rustup toolchain install nightly-2025-08-07 \
+rustup toolchain install nightly-2026-05-28 \
   --component rustc-dev --component llvm-tools-preview
-rustup target add wasm32v1-none --toolchain nightly-2025-08-07
+rustup target add wasm32v1-none --toolchain nightly-2026-05-28
 ```
 
 Install the Dylint tooling and `cargo-scout-audit` (the integration test
-harness invokes `cargo +nightly-2025-08-07 scout-audit`):
+harness invokes `cargo +nightly-2026-05-28 scout-audit`):
 
 ```bash
 cargo +nightly install cargo-dylint dylint-link
@@ -41,7 +41,7 @@ cargo install --path apps/cargo-scout-audit/crates/cargo-scout-audit
 ## Repository layout
 
 ```
-nightly/2025-08-07/
+nightly/2026-05-28/
   common/                         shared crates used by every detector
     src/lib.rs                    re-exports: analysis, declarations, macros
     declarations/                 Severity, VulnerabilityClass, LintInfo
@@ -64,7 +64,7 @@ test-case directory name must all be the same hyphenated id (e.g.
 `avoid-core-mem-forget`). `validate-detectors.py` enforces this 1:1 pairing.
 
 The Soroban detectors form a Cargo workspace
-(`nightly/2025-08-07/detectors/soroban/Cargo.toml`, `members = ["*"]`) whose
+(`nightly/2026-05-28/detectors/soroban/Cargo.toml`, `members = ["*"]`) whose
 `[workspace.dependencies]` provide the shared `clippy_utils`, `common`,
 `common_detectors`, `dylint_linting`, `dylint_internal`, and `if_chain`
 deps. Detector `Cargo.toml`s reference them with `{ workspace = true }`.
@@ -72,7 +72,7 @@ deps. Detector `Cargo.toml`s reference them with `{ workspace = true }`.
 ## Adding a new detector
 
 1. Copy a template from `doc/templates/detector/` into
-   `nightly/2025-08-07/detectors/soroban/<name>/`. Use `late-lint` for lints
+   `nightly/2026-05-28/detectors/soroban/<name>/`. Use `late-lint` for lints
    that need types or the HIR (a `LateLintPass`), or `early-lint` for lints
    that work on the AST before type-checking (an `EarlyLintPass`). An existing
    simple detector to model is `avoid-core-mem-forget` (early) or
@@ -209,7 +209,7 @@ python3 scripts/validate-detectors.py
 
 Run the unit and integration tests for one detector. This compiles the
 test-case crates, runs `cargo scout-audit` against them under
-`nightly-2025-08-07`, and checks the results against each `expected.json`:
+`nightly-2026-05-28`, and checks the results against each `expected.json`:
 
 ```bash
 python3 scripts/run-tests.py --detector soroban/<name>
@@ -237,9 +237,9 @@ When iterating on a single detector you can run the checks directly in its
 workspace:
 
 ```bash
-cd nightly/2025-08-07/detectors/soroban
-cargo +nightly-2025-08-07 fmt --all --check
-cargo +nightly-2025-08-07 clippy --all-targets --all-features -- -D warnings
+cd nightly/2026-05-28/detectors/soroban
+cargo +nightly-2026-05-28 fmt --all --check
+cargo +nightly-2026-05-28 clippy --all-targets --all-features -- -D warnings
 ```
 
 Clippy is run with `-D warnings`: a warning fails the build. Do not silence it

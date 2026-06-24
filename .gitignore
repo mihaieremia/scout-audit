@@ -52,7 +52,6 @@ report.md
 # Python virtual environment
 env/
 venv/
-!/detectors/ink/.vscode/
 __pycache__
 
 .vs
@@ -62,4 +61,3 @@ launchSettings.json
 basic.tar
 
 # Auto-generated documenration files
-.docusaurus

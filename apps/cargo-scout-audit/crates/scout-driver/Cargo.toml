@@ -13,7 +13,7 @@ authors = [
 
 build = "build.rs"
 categories = ["command-line-utilities", "development-tools"]
-description = "Scout is an extensible open-source tool intended to assist Ink! and Soroban smart contract developers and auditors detect common security issues and deviations from best practices."
+description = "Scout is an extensible open-source tool intended to assist Soroban smart contract developers and auditors detect common security issues and deviations from best practices."
 edition = "2021"
 keywords.workspace = true
 license.workspace = true

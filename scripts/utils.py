@@ -8,7 +8,7 @@ GREEN = "\033[92m"
 BLUE = "\033[94m"
 ENDC = "\033[0m"
 
-NIGHTLY_SUBDIRS = ["ink", "soroban", "substrate-pallets"]
+NIGHTLY_SUBDIRS = ["rust", "soroban"]
 
 
 def get_nightly_commands(command: str):

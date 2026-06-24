@@ -66,7 +66,7 @@ pub fn set_up_environment(toolchain: &str) -> Result<HashMap<String, String>> {
                 home.push(".rustup");
                 print_warning(&format!(
                     "Failed to get RUSTUP_HOME, defaulting to {:?}",
-                    &home
+                    home
                 ));
                 home
             }

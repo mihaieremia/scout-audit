@@ -13,7 +13,7 @@ use thiserror::Error;
 
 // Constants
 const DETECTORS_BASE_PATH: &str = "nightly";
-const DEFAULT_DETECTORS_TOOLCHAIN: &str = "2025-08-07";
+const DEFAULT_DETECTORS_TOOLCHAIN: &str = "2026-05-28";
 const LOCAL_BASE_DETECTOR_PATH: &str = "rust";
 const LIBRARY_NAME: &str = "library";
 
@@ -90,7 +90,7 @@ impl DetectorsConfiguration {
     }
 
     fn get_root_detector_path(base: &str, toolchain: &str) -> String {
-        // Extract just the date part from the toolchain (e.g., "2025-08-07" from "nightly-2025-08-07")
+        // Extract just the date part from the toolchain (e.g., "2026-05-28" from "nightly-2026-05-28")
         let date = toolchain
             .strip_prefix("nightly-")
             .unwrap_or(if toolchain == "nightly" {

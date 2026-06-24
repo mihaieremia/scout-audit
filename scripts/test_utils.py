@@ -27,7 +27,7 @@ def run_tests(detector):
 
     for root, _, _ in os.walk(directory):
         if is_rust_project(root):
-            if run_unit_tests(root, blockchain):
+            if run_unit_tests(root):
                 errors.append(root)
             if run_integration_tests(detector, root):
                 errors.append(root)
@@ -96,12 +96,9 @@ def check_expected_findings(manifest, findings):
     return True, ""
 
 
-def run_unit_tests(root, blockchain):
+def run_unit_tests(root):
     start_time = time.time()
-    params = ["cargo", "test"]
-    if blockchain != "ink":
-        # E2E tests don't work on Ink! test cases.
-        params.append("--all-features")
+    params = ["cargo", "test", "--all-features"]
     returncode, stdout, stderr = run_subprocess(params, root)
     print_results(
         returncode,
@@ -118,12 +115,17 @@ def run_integration_tests(detector, root):
 
     # Get latest nightly from the directory nightly/
     latest_nightly = os.path.join(os.getcwd(), "nightly")
+    # Build the driver from this local checkout (otherwise scout clones it from the
+    # published SCOUT_BRANCH, which lags local changes).
+    repo_root = os.getcwd()
 
     returncode, stdout, stderr = run_subprocess(
         [
             "cargo",
-            "+nightly-2025-08-07",
+            "+nightly-2026-05-28",
             "scout-audit",
+            "--scout-source",
+            repo_root,
             "--filter",
             detector,
             "--metadata",
@@ -155,8 +157,10 @@ def run_integration_tests(detector, root):
     returncode, _, stderr = run_subprocess(
         [
             "cargo",
-            "+nightly-2025-08-07",
+            "+nightly-2026-05-28",
             "scout-audit",
+            "--scout-source",
+            repo_root,
             "--local-detectors",
             latest_nightly,
             "--output-format",

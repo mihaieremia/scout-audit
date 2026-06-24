@@ -2,9 +2,10 @@ use crate::util::{git::download_git_repo, library::Library};
 use anyhow::{Context, Result};
 use cargo::{
     GlobalContext,
-    core::{Dependency, GitReference, SourceId, Verbosity},
+    core::{Dependency, GitReference, SourceId},
 };
 use cargo_metadata::{Metadata, MetadataCommand, TargetKind};
+use cargo_util_terminal::Verbosity;
 use std::{fs::canonicalize, path::PathBuf};
 
 enum PackageSource {

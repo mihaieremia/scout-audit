@@ -6,9 +6,7 @@ import glob
 # Base directories that always need formatting
 BASE_DIRS = [
     ("apps/cargo-scout-audit", "cargo fmt --all --check"),
-    ("test-cases/ink", "cargo fmt --check"),
     ("test-cases/soroban", "cargo fmt --check"),
-    ("test-cases/substrate-pallets", "cargo fmt --check"),
 ]
 
 

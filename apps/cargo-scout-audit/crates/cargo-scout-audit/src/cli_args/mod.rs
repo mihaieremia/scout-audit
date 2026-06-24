@@ -20,9 +20,7 @@ pub enum BlockchainError {
 #[strum(serialize_all = "kebab-case")]
 #[serde(rename_all = "kebab-case")]
 pub enum BlockChain {
-    Ink,
     Soroban,
-    SubstratePallets,
 }
 
 impl BlockChain {
@@ -32,9 +30,7 @@ impl BlockChain {
 
     pub fn get_detectors_path(&self) -> &str {
         match self {
-            BlockChain::Ink => "ink",
             BlockChain::Soroban => "soroban",
-            BlockChain::SubstratePallets => "substrate-pallets",
         }
     }
 
@@ -74,7 +70,7 @@ impl BlockChain {
         }
 
         let output_str = String::from_utf8_lossy(&output.stdout);
-        // Example output: "nightly-2025-08-07-x86_64-unknown-linux-gnu (default)"
+        // Example output: "nightly-2026-05-28-x86_64-unknown-linux-gnu (default)"
         // We only want the nightly-YYYY-MM-DD part, and we ignore undated nightlies.
         let toolchain = output_str
             .split_whitespace()
@@ -91,7 +87,7 @@ impl BlockChain {
         }
 
         // If no nightly toolchain found, use defaults based on blockchain
-        let default_toolchain = "nightly-2025-08-07";
+        let default_toolchain = "nightly-2026-05-28";
 
         Ok(default_toolchain.to_string())
     }
@@ -115,10 +111,6 @@ impl BlockChain {
         let immediate_dependencies = Self::get_immediate_dependencies(metadata);
         if immediate_dependencies.contains("soroban-sdk") {
             Ok(BlockChain::Soroban)
-        } else if immediate_dependencies.contains("ink") {
-            Ok(BlockChain::Ink)
-        } else if immediate_dependencies.contains("frame-system") {
-            Ok(BlockChain::SubstratePallets)
         } else {
             let supported_dependencies = BlockChain::variants()
                 .into_iter()
@@ -146,14 +138,14 @@ mod tests {
     #[test]
     fn parses_dated_nightly_with_target_triple() {
         let toolchain =
-            BlockChain::parse_nightly_toolchain("nightly-2025-08-07-x86_64-unknown-linux-gnu");
-        assert_eq!(toolchain.as_deref(), Some("nightly-2025-08-07"));
+            BlockChain::parse_nightly_toolchain("nightly-2026-05-28-x86_64-unknown-linux-gnu");
+        assert_eq!(toolchain.as_deref(), Some("nightly-2026-05-28"));
     }
 
     #[test]
     fn parses_dated_nightly_without_target_triple() {
-        let toolchain = BlockChain::parse_nightly_toolchain("nightly-2025-08-07");
-        assert_eq!(toolchain.as_deref(), Some("nightly-2025-08-07"));
+        let toolchain = BlockChain::parse_nightly_toolchain("nightly-2026-05-28");
+        assert_eq!(toolchain.as_deref(), Some("nightly-2026-05-28"));
     }
 
     #[test]
@@ -322,12 +314,6 @@ impl Scout {
                     "--target=wasm32v1-none".to_string(),
                     "--no-default-features".to_string(),
                 ]),
-                BlockChain::Ink => self.args.extend([
-                    "--target=wasm32-unknown-unknown".to_string(),
-                    "--no-default-features".to_string(),
-                    "-Zbuild-std=std,core,alloc".to_string(),
-                ]),
-                BlockChain::SubstratePallets => {}
             }
         }
 

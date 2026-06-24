@@ -24,8 +24,9 @@ use crate::{
     },
 };
 use anyhow::{Context, Ok, Result, anyhow};
-use cargo::{GlobalContext, core::Verbosity};
+use cargo::GlobalContext;
 use cargo_metadata::Metadata;
+use cargo_util_terminal::Verbosity;
 use serde_json::to_string_pretty;
 use std::{collections::HashSet, io::Write, path::PathBuf};
 use terminal_color_builder::OutputFormatter;

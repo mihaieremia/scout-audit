@@ -304,7 +304,7 @@ mod tests {
 
     #[test]
     fn test_message_format() {
-        let path = "tests/contracts/substrate-pallets/";
+        let path = "tests/contracts/soroban/";
 
         let scout_output = create_cargo_command()
             .args([
@@ -331,7 +331,7 @@ mod tests {
 
     #[test]
     fn test_metadata() {
-        let path = "tests/contracts/substrate-pallets/";
+        let path = "tests/contracts/soroban/";
 
         let scout_output = create_cargo_command()
             .args([

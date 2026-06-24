@@ -142,20 +142,19 @@ namespace run_tests
 
         private static void RunTestCase(HashSet<string> errors, string root, string blockchain, string detector)
         {
-            bool failed = !RunUnitTests(root, blockchain);
+            bool failed = !RunUnitTests(root);
             failed |= !RunScoutTests(blockchain, detector, root);
             if (failed)
                 errors.Add(root);
         }
 
-        private static bool RunUnitTests(string root, string blockchain)
+        private static bool RunUnitTests(string root)
         {
             var args = new List<string>
             {
-                "test"
+                "test",
+                "--all-features"
             };
-            if (blockchain != "ink")
-                args.Add("--all-features");
             var sw = new Stopwatch();
             sw.Start();
             var (code, stdout, _) = RunProcess("cargo", args, root);

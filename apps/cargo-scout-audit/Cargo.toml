@@ -4,7 +4,7 @@ members = ["crates/cargo-scout-audit", "crates/scout-driver"]
 resolver = "2"
 
 [workspace.package]
-keywords = ["auditor", "ink", "security", "smart-contracts", "soroban"]
+keywords = ["auditor", "security", "smart-contracts", "soroban"]
 license = "MIT"
 readme = "../../README.md"
 repository = "https://github.com/coinfabrik/scout-audit"
@@ -23,15 +23,17 @@ authors = [
 [workspace.dependencies]
 ansi_term = "0.12.1"
 anyhow = "1.0.102"
-cargo = "0.80.0"
+cargo = "0.97.1"
+cargo-util-terminal = "0.1.0"
 cargo_metadata = "0.23.1"
 chrono = "0.4.45"
 clap = "4.6.1"
 colored = "3.1.1"
 current_platform = "0.2.0"
 dunce = "1.0.5"
-dylint = "4.1.0"
-git2 = "0.18.3"
+dylint = "6.0.1"
+futures = "0.3.32"
+git2 = "0.20"
 home = "0.5.9"
 itertools = "0.15.0"
 lazy_static = "1.5.0"

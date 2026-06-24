@@ -7,7 +7,7 @@ repository.workspace = true
 keywords.workspace = true
 authors.workspace = true
 categories = ["command-line-utilities", "development-tools"]
-description = "Scout is an extensible open-source tool intended to assist Ink! and Soroban smart contract developers and auditors detect common security issues and deviations from best practices."
+description = "Scout is an extensible open-source tool intended to assist Soroban smart contract developers and auditors detect common security issues and deviations from best practices."
 readme = "../../../../README.md"
 build = "build.rs"
 
@@ -18,12 +18,14 @@ path = "src/lib.rs"
 ansi_term = { workspace = true }
 anyhow = { workspace = true }
 cargo.workspace = true
+cargo-util-terminal = { workspace = true }
 cargo_metadata = { workspace = true }
 chrono = { workspace = true, features = ["serde"] }
 clap = { workspace = true, features = ["derive"] }
 colored = { workspace = true }
 current_platform = { workspace = true }
 dunce = { workspace = true }
+futures = { workspace = true }
 git2 = { workspace = true }
 itertools = { workspace = true }
 lazy_static = { workspace = true }

@@ -23,19 +23,13 @@ pub fn download_git_repo(dependency: &Dependency, config: &GlobalContext) -> Res
 fn sample_package_id(dep: &Dependency, source: &mut dyn Source) -> anyhow::Result<PackageId> {
     let mut package_id: Option<PackageId> = None;
 
-    while {
-        let poll = source.query(dep, QueryKind::Alternatives, &mut |summary| {
+    futures::executor::block_on(
+        source.query(dep, QueryKind::AlternativeNames, &mut |summary| {
             if package_id.is_none() {
                 package_id = Some(summary.package_id());
             }
-        })?;
-        if poll.is_pending() {
-            source.block_until_ready()?;
-            package_id.is_none()
-        } else {
-            false
-        }
-    } {}
+        }),
+    )?;
 
     package_id.ok_or_else(|| anyhow!("Found no packages in `{}`", dep.source_id()))
 }

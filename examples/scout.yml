@@ -42,8 +42,9 @@ jobs:
 
           # Optional — comma-separated detectors to skip.
           # exclude: dos-unexpected-revert-with-storage
-          # Optional — fail the job on any finding (json/sarif only). Default: advisory.
-          # fail-on-findings: 'true'
+          # Optional — gate the PR on a severity threshold (json only):
+          # output-format: json
+          # fail-on-severity: critical   # none|critical|medium|minor|enhancement|any
           # Optional — extra build env, newline-separated KEY=VALUE.
           # env: |
           #   RUSTFLAGS=--cfg something

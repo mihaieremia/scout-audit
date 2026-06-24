@@ -88,8 +88,9 @@ jobs:
 
 **Inputs:** `contracts` (space/newline list of contract dirs or `Cargo.toml` paths;
 default = repo root), `output-format` (`md`\|`json`\|`sarif`\|`html`), `output-dir`,
-`exclude` (comma-separated detector names), `toolchain`, `fail-on-findings` (effective for
-`json`/`sarif`), `extra-args`, `env` (newline `KEY=VALUE` build-env overrides), and the
+`exclude` (comma-separated detector names), `toolchain`, `fail-on-severity`
+(`none`|`critical`|`medium`|`minor`|`enhancement`|`any`; JSON only) and its `fail-on-findings`
+alias, `extra-args`, `env` (newline `KEY=VALUE` build-env overrides), and the
 artifact controls `upload-reports` (default `true`), `artifact-name`, and `retention-days`.
 The action installs the pinned toolchain, builds the driver + detectors from the pinned
 checkout (no network fetch at analysis time), writes one report per contract to

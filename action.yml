@@ -35,6 +35,14 @@ inputs:
       output-format json or sarif (the parseable formats).
     required: false
     default: 'false'
+  fail-on-severity:
+    description: >-
+      Fail the step if Scout reports a finding at or above this severity.
+      One of: none (default) | critical | medium | minor | enhancement | any.
+      Effective only with output-format json. Supersedes fail-on-findings,
+      which remains as an alias for "any".
+    required: false
+    default: 'none'
   extra-args:
     description: 'Extra arguments passed through verbatim to `cargo scout-audit`.'
     required: false
@@ -93,6 +101,7 @@ runs:
         CONTRACTS: ${{ inputs.contracts }}
         EXTRA: ${{ inputs.extra-args }}
         FAIL_ON_FINDINGS: ${{ inputs.fail-on-findings }}
+        FAIL_ON_SEVERITY: ${{ inputs.fail-on-severity }}
         EXTRA_ENV: ${{ inputs.env }}
         # soroban-sdk's `experimental_spec_shaking_v2` build script hard-errors under
         # plain `cargo check` (it expects `stellar contract build`). Scout only
@@ -122,8 +131,14 @@ runs:
         exclude_arg=()
         [ -n "$EXCLUDE" ] && exclude_arg=(--exclude "$EXCLUDE")
 
+        # Resolve the effective gate threshold (fail-on-findings is the "any" alias).
+        THRESHOLD="$FAIL_ON_SEVERITY"
+        if [ "$THRESHOLD" = "none" ] && [ "$FAIL_ON_FINDINGS" = "true" ]; then
+          THRESHOLD="any"
+        fi
+
         incomplete=0
-        findings=0
+        gated=0
         # CONTRACTS is intentionally unquoted so the list word-splits on whitespace/newlines.
         # shellcheck disable=SC2086
         for c in $CONTRACTS; do
@@ -150,11 +165,16 @@ runs:
             echo "::error::Scout report for $manifest is incomplete (the contract failed to compile)"
             incomplete=$((incomplete + 1))
           fi
-          # Count findings for the parseable formats.
-          if [ -f "$out" ] && { [ "$FMT" = "sarif" ] || [ "$FMT" = "json" ]; }; then
-            if [ "$FMT" = "sarif" ]; then n="$(jq '[.runs[].results[]?] | length' "$out" 2>/dev/null || echo 0)"
-            else n="$(jq '[.. | objects | select(has("code")) | .code] | length' "$out" 2>/dev/null || echo 0)"; fi
-            [ "${n:-0}" -gt 0 ] && findings=$((findings + n))
+          # Severity gate (JSON only): count findings at or above THRESHOLD.
+          if [ "$THRESHOLD" != "none" ] && [ -f "$out" ] && [ "$FMT" = "json" ]; then
+            n="$(jq --arg t "$THRESHOLD" '
+              (.summary.by_severity // {}) as $s |
+              ($s.critical // 0)
+              + (if $t=="critical" then 0 else ($s.medium // 0) end)
+              + (if ($t=="critical" or $t=="medium") then 0 else ($s.minor // 0) end)
+              + (if ($t=="critical" or $t=="medium" or $t=="minor") then 0 else ($s.enhancement // 0) end)
+            ' "$out" 2>/dev/null || echo 0)"
+            [ "${n:-0}" -gt 0 ] && gated=$((gated + n))
           fi
           echo "::endgroup::"
         done
@@ -166,11 +186,11 @@ runs:
           echo "::error::$incomplete contract(s) did not analyze cleanly"
           exit 1
         fi
-        if [ "$FAIL_ON_FINDINGS" = "true" ]; then
-          if [ "$FMT" != "sarif" ] && [ "$FMT" != "json" ]; then
-            echo "::warning::fail-on-findings needs output-format json or sarif; ignoring"
-          elif [ "$findings" -gt 0 ]; then
-            echo "::error::Scout reported $findings finding(s)"
+        if [ "$THRESHOLD" != "none" ]; then
+          if [ "$FMT" != "json" ]; then
+            echo "::warning::fail-on-severity/fail-on-findings needs output-format json; ignoring"
+          elif [ "$gated" -gt 0 ]; then
+            echo "::error::Scout reported $gated finding(s) at or above severity '$THRESHOLD'"
             exit 1
           fi
         fi

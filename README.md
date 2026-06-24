@@ -66,7 +66,9 @@ cargo scout-audit ... --output-format [md|html|json|sarif] --output-path report.
 ## GitHub Action
 
 This repository **is a composite GitHub Action**, so any project can run the full Soroban
-detector suite in CI with a single step. Pin it to a commit or tag of this repo:
+detector suite in CI with a single step. A ready-to-copy workflow lives in
+[`examples/scout.yml`](examples/scout.yml) — drop it into your project's
+`.github/workflows/` and edit the `contracts:` list. The minimal form:
 
 ```yaml
 name: Scout

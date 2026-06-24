@@ -11,4 +11,4 @@ common_utils = { path = "../../common/utils", package = "common-utils" }
 dylint_internal = "=6.0.1"
 dylint_linting = "=6.0.1"
 if_chain = "=1.0.3"
-itertools = { version = "=0.13" }
+itertools = { version = "0.15" }

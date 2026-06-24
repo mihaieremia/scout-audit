@@ -13,7 +13,6 @@ dylint_internal = { workspace = true }
 dylint_linting = { workspace = true }
 if_chain = { workspace = true }
 serde = { version = "1", features = ["derive"] }
-serde_json = "1.0"
-
+serde_json = { workspace = true }
 [package.metadata.rust-analyzer]
 rustc_private = true

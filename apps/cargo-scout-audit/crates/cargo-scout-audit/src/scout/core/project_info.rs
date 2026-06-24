@@ -111,7 +111,7 @@ impl Project {
             };
 
             packages.push(Package {
-                name: package.name.clone(),
+                name: package.name.to_string(),
                 id: package_id.to_string(),
                 absolute_path,
                 relative_path,

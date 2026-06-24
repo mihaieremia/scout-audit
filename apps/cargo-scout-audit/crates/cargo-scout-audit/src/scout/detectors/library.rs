@@ -123,13 +123,13 @@ impl DetectorLibrary {
 
             // Process each package in the library
             for package in library.lib.metadata.packages.clone() {
-                let should_insert = match unique_packages.get(&package.name) {
+                let should_insert = match unique_packages.get(package.name.as_str()) {
                     None => true,
                     Some(_) => detector_type != "rust",
                 };
 
                 if should_insert {
-                    unique_packages.insert(package.name.clone(), (package, library.clone()));
+                    unique_packages.insert(package.name.to_string(), (package, library.clone()));
                 }
             }
         }

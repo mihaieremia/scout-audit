@@ -96,14 +96,14 @@ impl Library {
         if target.kind.len() != 1 {
             return None;
         }
-        self.path_with_kind(pkg, target.kind.first()?)
+        self.path_with_kind(pkg, &target.kind.first()?.to_string())
     }
 
     fn path_with_kind(&self, pkg: &Package, kind: &str) -> Option<PathBuf> {
         Some(if kind == "lib" || kind == "cdylib" {
-            self.library_path(pkg.name.clone())
+            self.library_path(pkg.name.to_string())
         } else {
-            self.binary_path(pkg.name.clone())
+            self.binary_path(pkg.name.to_string())
         })
     }
 
@@ -111,7 +111,7 @@ impl Library {
         let mut ret = Vec::new();
 
         for target in pkg.targets.iter() {
-            if !target.kind.iter().any(|k| k == expected_kind) {
+            if !target.kind.iter().any(|k| k.to_string() == expected_kind) {
                 continue;
             }
             let Some(path) = self.path_with_kind(pkg, expected_kind) else {

@@ -4,7 +4,7 @@ use cargo::{
     GlobalContext,
     core::{Dependency, GitReference, SourceId, Verbosity},
 };
-use cargo_metadata::{Metadata, MetadataCommand};
+use cargo_metadata::{Metadata, MetadataCommand, TargetKind};
 use std::{fs::canonicalize, path::PathBuf};
 
 enum PackageSource {
@@ -164,7 +164,7 @@ impl PackageToBuild {
             .filter(|pkg| package_name.map(|name| pkg.name == name).unwrap_or(true))
             .any(|pkg| {
                 pkg.targets.iter().any(|target| {
-                    target.kind.iter().any(|k| k == "bin") && target.name == binary_name
+                    target.kind.contains(&TargetKind::Bin) && target.name == binary_name
                 })
             });
 

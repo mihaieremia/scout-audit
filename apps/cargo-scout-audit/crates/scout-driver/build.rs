@@ -27,7 +27,16 @@ fn hash_file<P: AsRef<Path>>(path: P) -> std::io::Result<String> {
 
     // Return hash as a hex string
     let result = hash.finalize();
-    Ok(format!("{:x}", result))
+    Ok(to_hex(&result))
+}
+
+fn to_hex(bytes: &[u8]) -> String {
+    use std::fmt::Write;
+    let mut hex = String::with_capacity(bytes.len() * 2);
+    for byte in bytes {
+        let _ = write!(hex, "{:02x}", byte);
+    }
+    hex
 }
 
 fn hash_file_allow_missing(path: &Path) -> std::io::Result<String> {
@@ -83,7 +92,7 @@ fn hash_directory<P: AsRef<Path>, const N: usize>(
         }
     }
     let result = hash.finalize();
-    Ok(format!("{:x}", result))
+    Ok(to_hex(&result))
 }
 
 fn write_file_lazy(path: &Path, contents: &[u8]) -> std::io::Result<()> {

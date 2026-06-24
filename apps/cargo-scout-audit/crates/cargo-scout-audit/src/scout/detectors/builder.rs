@@ -71,7 +71,14 @@ impl<'a> DetectorBuilder<'a> {
         let libraries = self.get_all_libraries()?;
 
         for library in libraries {
-            all_names.extend(library.lib.metadata.packages.into_iter().map(|p| p.name));
+            all_names.extend(
+                library
+                    .lib
+                    .metadata
+                    .packages
+                    .into_iter()
+                    .map(|p| p.name.to_string()),
+            );
         }
 
         Ok(all_names)

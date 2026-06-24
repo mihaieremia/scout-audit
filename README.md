@@ -107,6 +107,32 @@ To surface findings in the repo's Security tab instead, set `output-format: sari
 `github/codeql-action/upload-sarif` step. A container image ([`Dockerfile`](Dockerfile) +
 [`entrypoint.sh`](entrypoint.sh)) is also available for non-Actions CI.
 
+### Reusable workflow (batteries-included)
+
+Don't want to wire up `checkout` yourself? Call the **reusable workflow** — it owns the whole
+job (checkout + scan), and the self-hosted cache bits are opt-in:
+
+```yaml
+name: Scout
+on: [pull_request]
+jobs:
+  scout:
+    uses: mihaieremia/scout-audit/.github/workflows/scout.yml@v1.2.0
+    with:
+      contracts: |
+        contracts/pool
+        contracts/controller
+      # self-hosted persistent runner? add the next two lines:
+      # runs-on: self-hosted
+      # preserve-cache: true
+```
+
+It accepts the same inputs as the action, plus **`runs-on`** (default `ubuntu-latest`) and
+**`preserve-cache`** (default `false` — when `true`, it keeps `target/` and resets the source
+tree so a persistent self-hosted runner reuses the build cache). Reach for the composite
+action above instead when you need a custom checkout (submodules, `fetch-depth`, a specific
+`ref`).
+
 ## Detectors
 
 This fork ships **52 detectors** — 41 Soroban-specific (`nightly/2026-05-28/detectors/soroban/`)

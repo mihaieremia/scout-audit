@@ -1,0 +1,125 @@
+# Scout Audit — reusable workflow.
+#
+# Unlike the composite action (which is a step inside YOUR job and needs you to check out
+# the repo first), this OWNS the whole job: it checks out your code and runs Scout. The
+# self-hosted cache bits are opt-in; the defaults target a normal GitHub-hosted runner.
+#
+#   jobs:
+#     scout:
+#       uses: mihaieremia/scout-audit/.github/workflows/scout.yml@v1.2.0
+#       with:
+#         contracts: |
+#           contracts/pool
+#           contracts/controller
+#
+# Self-hosted persistent runner? Add:  runs-on: self-hosted  +  preserve-cache: true
+
+on:
+  workflow_call:
+    inputs:
+      contracts:
+        description: 'Space/newline-separated contract dirs or Cargo.toml paths. Default: repo root.'
+        required: false
+        type: string
+        default: '.'
+      output-format:
+        description: 'md | json | sarif | html.'
+        required: false
+        type: string
+        default: 'md'
+      output-dir:
+        description: 'Directory for the generated reports.'
+        required: false
+        type: string
+        default: 'scout-reports'
+      exclude:
+        description: 'Comma-separated detector names to exclude.'
+        required: false
+        type: string
+        default: ''
+      toolchain:
+        description: 'Detector nightly toolchain.'
+        required: false
+        type: string
+        default: 'nightly-2026-05-28'
+      fail-on-severity:
+        description: 'Gate threshold: none|critical|medium|minor|enhancement|any (JSON only).'
+        required: false
+        type: string
+        default: 'none'
+      fail-on-findings:
+        description: 'Alias for fail-on-severity: any.'
+        required: false
+        type: string
+        default: 'false'
+      extra-args:
+        description: 'Extra arguments passed to cargo scout-audit.'
+        required: false
+        type: string
+        default: ''
+      env:
+        description: 'Extra build env, newline-separated KEY=VALUE.'
+        required: false
+        type: string
+        default: ''
+      upload-reports:
+        description: 'Upload the reports as a workflow artifact.'
+        required: false
+        type: boolean
+        default: true
+      artifact-name:
+        description: 'Name for the uploaded reports artifact.'
+        required: false
+        type: string
+        default: 'scout-audit-reports'
+      retention-days:
+        description: 'Artifact retention in days.'
+        required: false
+        type: number
+        default: 7
+      runs-on:
+        description: 'Runner to use. Default ubuntu-latest (GitHub-hosted); set to self-hosted for your own runner.'
+        required: false
+        type: string
+        default: 'ubuntu-latest'
+      preserve-cache:
+        description: 'Preserve target/ between runs (only useful on a persistent self-hosted runner). Default false.'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  scout:
+    name: Scout Audit
+    runs-on: ${{ inputs.runs-on }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # On a persistent self-hosted runner, keep target/ to reuse the build cache;
+          # otherwise let checkout clean normally (the GitHub-hosted default).
+          clean: ${{ !inputs.preserve-cache }}
+
+      - name: Reset workspace, preserve target/ build cache
+        if: ${{ inputs.preserve-cache }}
+        run: |
+          git reset --hard
+          git clean -ffdx -e target
+
+      - name: Run Scout
+        uses: mihaieremia/scout-audit@v1.2.0
+        with:
+          contracts: ${{ inputs.contracts }}
+          output-format: ${{ inputs.output-format }}
+          output-dir: ${{ inputs.output-dir }}
+          exclude: ${{ inputs.exclude }}
+          toolchain: ${{ inputs.toolchain }}
+          fail-on-severity: ${{ inputs.fail-on-severity }}
+          fail-on-findings: ${{ inputs.fail-on-findings }}
+          extra-args: ${{ inputs.extra-args }}
+          env: ${{ inputs.env }}
+          upload-reports: ${{ inputs.upload-reports }}
+          artifact-name: ${{ inputs.artifact-name }}
+          retention-days: ${{ inputs.retention-days }}

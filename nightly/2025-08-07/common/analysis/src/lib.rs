@@ -4,7 +4,7 @@ pub use dylint_linting;
 pub use paste;
 
 mod function_call_visitor;
-pub use function_call_visitor::FunctionCallVisitor;
+pub use function_call_visitor::{is_auth_reachable, FunctionCallVisitor};
 
 mod soroban_utils;
 pub use soroban_utils::*;

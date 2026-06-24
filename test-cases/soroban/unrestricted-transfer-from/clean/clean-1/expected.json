@@ -1,0 +1,5 @@
+{
+  "findings": [
+    { "detector": "unrestricted-transfer-from", "count": 0 }
+  ]
+}

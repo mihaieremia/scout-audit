@@ -1,0 +1,5 @@
+{
+  "findings": [
+    { "detector": "missing-new-admin-auth", "count": 0 }
+  ]
+}

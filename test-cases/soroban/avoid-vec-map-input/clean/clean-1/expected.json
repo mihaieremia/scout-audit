@@ -1,0 +1,5 @@
+{
+  "findings": [
+    { "detector": "avoid-vec-map-input", "count": 0 }
+  ]
+}

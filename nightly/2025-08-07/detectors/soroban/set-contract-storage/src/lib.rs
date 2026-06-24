@@ -7,7 +7,7 @@ use std::collections::{HashMap, HashSet};
 
 use clippy_utils::diagnostics::span_lint_and_help;
 use common::{
-    analysis::{self, FunctionCallVisitor, SorobanStorageType},
+    analysis::{self, is_auth_reachable, FunctionCallVisitor, SorobanStorageType},
     declarations::{Severity, VulnerabilityClass},
     macros::expose_lint_info,
 };
@@ -23,6 +23,29 @@ use rustc_span::{
 };
 
 const LINT_MESSAGE: &str = "Abitrary users should not have control over keys because it implies writing any value of left mapping, lazy variable, or the main struct of the contract located in position 0 of the storage";
+
+/// Free functions injected by the OpenZeppelin `stellar-macros` access-control
+/// attribute macros (`#[only_owner]`, `#[only_admin]`). Their bodies live in the
+/// external `stellar-access` crate and internally call `require_auth`, so they are
+/// invisible to both the inline `addr.require_auth()` check and the local call-graph
+/// reachability analysis. Recognizing them by name credits the injected authorization.
+const ACCESS_CONTROL_AUTH_ENFORCERS: [&str; 2] = ["enforce_owner_auth", "enforce_admin_auth"];
+
+/// Returns `true` if `expr` is a call to an OpenZeppelin access-control auth enforcer
+/// (see [`ACCESS_CONTROL_AUTH_ENFORCERS`]).
+fn is_access_control_auth_call(cx: &LateContext<'_>, expr: &Expr<'_>) -> bool {
+    if let ExprKind::Call(callee, _) = &expr.kind {
+        if let ExprKind::Path(qpath) = &callee.kind {
+            if let Some(def_id) = cx.qpath_res(qpath, callee.hir_id).opt_def_id() {
+                let path = cx.tcx.def_path_str(def_id);
+                return ACCESS_CONTROL_AUTH_ENFORCERS
+                    .iter()
+                    .any(|enforcer| path.ends_with(enforcer));
+            }
+        }
+    }
+    false
+}
 
 #[expose_lint_info]
 pub static SET_CONTRACT_STORAGE_INFO: LintInfo = LintInfo {
@@ -52,6 +75,15 @@ struct SetContractStorage {
 impl<'tcx> LateLintPass<'tcx> for SetContractStorage {
     fn check_crate_post(&mut self, cx: &LateContext<'tcx>) {
         for (callee_def_id, storage_spans) in &self.unauthorized_storage_calls {
+            // If authorization is reachable from the callee itself (e.g. it delegates
+            // `require_auth` to a helper), the storage write is protected.
+            if is_auth_reachable(
+                *callee_def_id,
+                &self.function_call_graph,
+                &self.authorized_functions,
+            ) {
+                continue;
+            }
             let is_callee_soroban =
                 analysis::is_soroban_function(cx, &self.checked_functions, callee_def_id);
             let (is_called_by_soroban, is_soroban_caller_authed) = self
@@ -61,12 +93,17 @@ impl<'tcx> LateLintPass<'tcx> for SetContractStorage {
                     if callees.contains(callee_def_id) {
                         let is_caller_soroban =
                             analysis::is_soroban_function(cx, &self.checked_functions, caller);
-                        // Update if the caller is Soroban and check if it's authorized only if it's a Soroban caller
+                        // A Soroban caller authorizes the call if `require_auth` is
+                        // reachable from it through the call graph, not only inline.
                         (
                             acc.0 || is_caller_soroban,
                             acc.1
                                 && (!is_caller_soroban
-                                    || self.authorized_functions.contains(caller)),
+                                    || is_auth_reachable(
+                                        *caller,
+                                        &self.function_call_graph,
+                                        &self.authorized_functions,
+                                    )),
                         )
                     } else {
                         acc
@@ -132,6 +169,13 @@ struct SetStorageWarnVisitor<'a, 'tcx> {
 impl<'a, 'tcx> Visitor<'tcx> for SetStorageWarnVisitor<'a, 'tcx> {
     fn visit_expr(&mut self, expr: &'tcx Expr<'tcx>) {
         if self.auth_found {
+            return;
+        }
+
+        // Recognize authorization injected by OZ `#[only_owner]` / `#[only_admin]`
+        // macros, which call an external enforcer instead of `addr.require_auth()`.
+        if is_access_control_auth_call(self.cx, expr) {
+            self.auth_found = true;
             return;
         }
 

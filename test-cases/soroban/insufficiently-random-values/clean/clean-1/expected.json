@@ -1,0 +1,5 @@
+{
+  "findings": [
+    { "detector": "insufficiently-random-values", "count": 0 }
+  ]
+}

@@ -1,0 +1,5 @@
+{
+  "findings": [
+    { "detector": "unprotected-mapping-operation", "count": 0 }
+  ]
+}

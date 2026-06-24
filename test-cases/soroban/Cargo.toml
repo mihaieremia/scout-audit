@@ -1,6 +1,13 @@
 [workspace]
-exclude = [".cargo", "overflow-check", "soroban-version", "target"]
+exclude = [
+    ".cargo",
+    "integer-overflow-or-underflow",
+    "overflow-check",
+    "soroban-version",
+    "target",
+]
 members = [
+    "*/clean/clean-*",
     "*/remediated/remediated-*",
     "*/vulnerable/vulnerable-*",
     "contract-import-dependency/remediated/dependency-contract",

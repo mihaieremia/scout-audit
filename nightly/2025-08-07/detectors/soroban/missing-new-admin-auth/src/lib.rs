@@ -364,6 +364,29 @@ impl<'a, 'tcx> Visitor<'tcx> for MissingNewAdminAuthVisitor<'a, 'tcx> {
             let method_name = path_segment.ident.name;
             let receiver_ty = get_node_type_opt(self.cx, &receiver.hir_id);
 
+            // Record method-call helpers as call sites so authorization delegated to a
+            // method (e.g. `self.require_admins(&new_admin)`) is recognized by the
+            // interprocedural summary, matching free/associated-function delegation.
+            if let Some(callee_def_id) = self.cx.typeck_results().type_dependent_def_id(expr.hir_id)
+            {
+                // Callee parameter 0 is the receiver; explicit args follow at index 1.
+                let mut arg_to_param = Vec::with_capacity(call_args.len() + 1);
+                arg_to_param.push(
+                    resolve_expr_to_param(receiver, &self.aliases, &self.param_by_hir)
+                        .and_then(|hir_id| self.param_by_hir.get(&hir_id).copied()),
+                );
+                arg_to_param.extend(call_args.iter().map(|arg| {
+                    resolve_expr_to_param(arg, &self.aliases, &self.param_by_hir)
+                        .and_then(|hir_id| self.param_by_hir.get(&hir_id).copied())
+                }));
+
+                self.call_sites.push(CallSite {
+                    callee_def_id,
+                    arg_to_param,
+                    span: expr.span,
+                });
+            }
+
             // Detect sinks: `storage.set(&Key::Admin, new_admin)` where new_admin is a parameter
             if method_name == Symbol::intern("set")
                 && receiver_ty.is_some_and(|ty| {

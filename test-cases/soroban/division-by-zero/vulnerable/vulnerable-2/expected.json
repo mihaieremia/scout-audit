@@ -1,0 +1,5 @@
+{
+  "findings": [
+    { "detector": "division-by-zero", "count": 2, "lines": [13, 26] }
+  ]
+}

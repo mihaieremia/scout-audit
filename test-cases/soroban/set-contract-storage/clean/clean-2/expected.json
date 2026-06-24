@@ -1,0 +1,5 @@
+{
+  "findings": [
+    { "detector": "set-contract-storage", "count": 0 }
+  ]
+}

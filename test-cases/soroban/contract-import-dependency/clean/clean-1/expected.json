@@ -1,0 +1,5 @@
+{
+  "findings": [
+    { "detector": "contract-import-dependency", "count": 0 }
+  ]
+}

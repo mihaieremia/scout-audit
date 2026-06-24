@@ -26,7 +26,7 @@ pub static DYNAMIC_STORAGE_INFO: LintInfo = LintInfo {
     name: env!("CARGO_PKG_NAME"),
     short_message: LINT_MESSAGE,
     long_message: "Using dynamic types in instance or persistent storage can lead to unnecessary growth or storage-related vulnerabilities.",
-    severity: Severity::Medium,
+    severity: Severity::Enhancement,
     help: "https://coinfabrik.github.io/scout-audit/docs/detectors/soroban/dynamic-storage",
     vulnerability_class: VulnerabilityClass::ResourceManagement,
 };

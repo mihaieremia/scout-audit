@@ -182,6 +182,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "division-by-zero"
+version = "0.1.0"
+dependencies = [
+ "clippy_utils",
+ "common",
+ "dylint_internal",
+ "dylint_linting",
+ "if_chain",
+]
+
+[[package]]
 name = "dos-unbounded-operation"
 version = "0.1.0"
 dependencies = [
@@ -493,6 +504,7 @@ dependencies = [
  "dylint_internal",
  "dylint_linting",
  "if_chain",
+ "toml 0.8.19",
 ]
 
 [[package]]
@@ -1063,6 +1075,16 @@ dependencies = [
  "dylint_internal",
  "dylint_linting",
  "if_chain",
+]
+
+[[package]]
+name = "unsafe-lossy-cast"
+version = "0.1.0"
+dependencies = [
+ "clippy_utils",
+ "common",
+ "dylint_internal",
+ "dylint_linting",
 ]
 
 [[package]]

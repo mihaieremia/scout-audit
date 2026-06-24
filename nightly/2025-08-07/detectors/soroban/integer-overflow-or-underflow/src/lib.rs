@@ -3,6 +3,8 @@
 extern crate rustc_hir;
 extern crate rustc_span;
 
+use std::{fs, path::Path, process::Command, str::from_utf8};
+
 use clippy_utils::diagnostics::span_lint_and_help;
 use common::{
     analysis::ConstantAnalyzer,
@@ -15,6 +17,7 @@ use rustc_hir::{
 };
 use rustc_lint::{LateContext, LateLintPass};
 use rustc_span::{def_id::LocalDefId, Span, Symbol};
+use toml::Value;
 
 pub const LINT_MESSAGE: &str = "Potential for integer arithmetic overflow/underflow. Consider checked, wrapping or saturating arithmetic.";
 
@@ -28,11 +31,64 @@ pub static INTEGER_OVERFLOW_OR_UNDERFLOW_INFO: LintInfo = LintInfo {
     vulnerability_class: VulnerabilityClass::Arithmetic,
 };
 
-dylint_linting::declare_late_lint! {
+dylint_linting::impl_late_lint! {
     pub INTEGER_OVERFLOW_OR_UNDERFLOW,
     Warn,
-    LINT_MESSAGE
+    LINT_MESSAGE,
+    IntegerOverflowOrUnderflow::default()
 }
+
+#[derive(Default)]
+struct IntegerOverflowOrUnderflow {
+    /// Cached result of `profile.release.overflow-checks` for the governing
+    /// workspace. Computed lazily on the first `check_fn` invocation.
+    overflow_checks_enabled: Option<bool>,
+}
+
+impl IntegerOverflowOrUnderflow {
+    /// Reads `profile.release.overflow-checks` from the governing workspace
+    /// `Cargo.toml`. When enabled, arithmetic overflow traps at runtime, so the
+    /// raw-arithmetic findings would be noise.
+    fn read_overflow_checks() -> bool {
+        let Ok(output) = Command::new(env!("CARGO"))
+            .arg("locate-project")
+            .arg("--workspace")
+            .arg("--message-format=plain")
+            .output()
+        else {
+            return false;
+        };
+
+        if !output.status.success() {
+            return false;
+        }
+
+        let Ok(path_str) = from_utf8(&output.stdout) else {
+            return false;
+        };
+
+        let cargo_path = Path::new(path_str.trim());
+        let Some(workspace_dir) = cargo_path.parent() else {
+            return false;
+        };
+
+        let Ok(contents) = fs::read_to_string(workspace_dir.join("Cargo.toml")) else {
+            return false;
+        };
+
+        let Ok(toml) = contents.parse::<Value>() else {
+            return false;
+        };
+
+        matches!(
+            toml.get("profile")
+                .and_then(|p| p.get("release"))
+                .and_then(|r| r.get("overflow-checks")),
+            Some(Value::Boolean(true))
+        )
+    }
+}
+
 enum Type {
     Overflow,
     Underflow,
@@ -236,6 +292,16 @@ impl<'tcx> LateLintPass<'tcx> for IntegerOverflowOrUnderflow {
         span: Span,
         _: LocalDefId,
     ) {
+        // When the governing workspace enables `overflow-checks` on the release
+        // profile, arithmetic overflow traps (reverts) instead of producing an
+        // inexact result, so these findings would be pure noise.
+        if *self
+            .overflow_checks_enabled
+            .get_or_insert_with(Self::read_overflow_checks)
+        {
+            return;
+        }
+
         // If the function comes from a macro expansion, we ignore it
         if span.from_expansion() {
             return;

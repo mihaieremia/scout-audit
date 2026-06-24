@@ -17,6 +17,7 @@ use rustc_hir::{
 use rustc_lint::{LateContext, LateLintPass};
 use rustc_middle::mir::{BasicBlock, BasicBlocks, Local, Operand, StatementKind, TerminatorKind};
 use rustc_span::Span;
+use std::collections::HashSet;
 
 const LINT_MESSAGE: &str = "This argument comes from a user-supplied argument";
 
@@ -62,12 +63,33 @@ impl<'tcx> LateLintPass<'tcx> for UnrestrictedTransferFrom {
             span: Option<Span>,
             from_ref: bool,
             the_body: &'tcx Body<'tcx>,
+            /// Name of the `from` parameter used by `transfer_from`, if it is a
+            /// user-supplied argument.
+            from_param_name: Option<String>,
+            /// Parameter names on which `require_auth`/`require_auth_for_args` is
+            /// called anywhere in the body. Authorizing `from` makes the transfer safe.
+            authorized_param_names: HashSet<String>,
         }
 
         impl<'tcx> Visitor<'tcx> for UnrestrictedTransferFromFinder<'tcx, '_> {
             fn visit_expr(&mut self, expr: &'tcx Expr<'_>) {
-                if let ExprKind::MethodCall(path_segment, _, methodargs, ..) = expr.kind {
-                    if path_segment.ident.name.to_string() == "transfer_from" {
+                if let ExprKind::MethodCall(path_segment, receiver, methodargs, ..) = expr.kind {
+                    let method_name = path_segment.ident.name.to_string();
+
+                    // Record `addr.require_auth()` / `addr.require_auth_for_args(..)`
+                    // where `addr` resolves to a function parameter.
+                    if (method_name == "require_auth" || method_name == "require_auth_for_args")
+                        && let ExprKind::Path(rustc_hir::QPath::Resolved(
+                            _,
+                            rustc_hir::Path { segments, .. },
+                        )) = receiver.peel_borrows().kind
+                        && let Some(seg) = segments.first()
+                    {
+                        self.authorized_param_names
+                            .insert(seg.ident.name.to_string());
+                    }
+
+                    if method_name == "transfer_from" {
                         self.def_id = self
                             .cx
                             .typeck_results()
@@ -94,6 +116,7 @@ impl<'tcx> LateLintPass<'tcx> for UnrestrictedTransferFrom {
                                 if possible_params.contains(&from_addr.ident.name.to_string()) {
                                     self.span = Some(from_addr.ident.span);
                                     self.from_ref = true;
+                                    self.from_param_name = Some(from_addr.ident.name.to_string());
                                 }
                             }
                         }
@@ -113,13 +136,22 @@ impl<'tcx> LateLintPass<'tcx> for UnrestrictedTransferFrom {
             span: None,
             from_ref: false,
             the_body: body,
+            from_param_name: None,
+            authorized_param_names: HashSet::new(),
         };
 
         let mir_body = cx.tcx.optimized_mir(localdef.to_def_id());
 
         walk_expr(&mut utf_storage, body.value);
 
-        if utf_storage.from_ref {
+        // A `from` address that the caller has authorized via `require_auth` is not an
+        // unrestricted transfer: the user proved ownership of the funds being moved.
+        let from_is_authorized = utf_storage
+            .from_param_name
+            .as_ref()
+            .is_some_and(|name| utf_storage.authorized_param_names.contains(name));
+
+        if utf_storage.from_ref && !from_is_authorized {
             clippy_utils::diagnostics::span_lint(
                 cx,
                 UNRESTRICTED_TRANSFER_FROM,

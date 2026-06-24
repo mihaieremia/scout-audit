@@ -1,0 +1,5 @@
+{
+  "findings": [
+    { "detector": "unnecessary-lint-allow", "count": 0 }
+  ]
+}

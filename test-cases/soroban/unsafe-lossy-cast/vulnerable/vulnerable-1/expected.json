@@ -1,0 +1,5 @@
+{
+  "findings": [
+    { "detector": "unsafe-lossy-cast", "count": 2, "lines": [12, 18] }
+  ]
+}

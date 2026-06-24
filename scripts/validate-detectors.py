@@ -32,7 +32,15 @@ def is_rust_project(dir_path: str) -> List[str]:
             errors.append(f"{error_msg} in {dir_path}")
 
     # Check for unexpected files/directories
-    allowed_items = {"Cargo.toml", "Cargo.lock", "src", "target", ".cargo"}
+    allowed_items = {
+        "Cargo.toml",
+        "Cargo.lock",
+        "src",
+        "target",
+        ".cargo",
+        "expected.json",
+        "test_snapshots",
+    }
     for item in os.listdir(dir_path):
         if item not in allowed_items:
             errors.append(f"Unexpected item found in {dir_path}: {item}")
@@ -87,14 +95,20 @@ def validate_test_case(test_case_path: str, detector_name: str) -> List[str]:
     if not os.path.isdir(remediated_path):
         errors.append(f"Missing 'remediated' directory in {test_case_path}")
 
+    # Optional 'clean' directory: idiomatic-but-safe crates that must produce
+    # zero findings (false-positive regression corpus). Each carries expected.json.
+    clean_path = os.path.join(test_case_path, "clean")
+
     # If directories exist, validate their contents
     if os.path.isdir(vulnerable_path):
         errors.extend(validate_example_naming(vulnerable_path, "vulnerable"))
     if os.path.isdir(remediated_path):
         errors.extend(validate_example_naming(remediated_path, "remediated"))
+    if os.path.isdir(clean_path):
+        errors.extend(validate_example_naming(clean_path, "clean"))
 
     # Check for unexpected items in test case root
-    allowed_items = {"vulnerable", "remediated"}
+    allowed_items = {"vulnerable", "remediated", "clean"}
     for item in os.listdir(test_case_path):
         if item not in allowed_items:
             errors.append(

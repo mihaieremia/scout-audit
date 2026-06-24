@@ -118,8 +118,15 @@ impl FrontRunningVisitor<'_, '_> {
             last_conditional_checker.lesser_expr,
             last_conditional_checker.greater_expr,
         ) {
+            // A transfer amount is guarded whether it is compared as the greater
+            // side (`amount >= min_param`) or the lesser side (`amount < min_param`
+            // / `if amount < min_param { panic }`): in both cases a caller-supplied
+            // parameter bounds the amount, so mark the non-parameter operand checked.
             if self.function_params.contains(&lesser_hir_id) {
                 self.checked_hir_ids.insert(greater_hir_id);
+            }
+            if self.function_params.contains(&greater_hir_id) {
+                self.checked_hir_ids.insert(lesser_hir_id);
             }
         }
     }

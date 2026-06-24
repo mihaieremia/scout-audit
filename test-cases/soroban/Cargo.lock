@@ -62,6 +62,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ace50bade8e6234aa140d9a2f552bbee1db4d353f69b8217bc503490fc1a9f26"
 
 [[package]]
+name = "avoid-core-mem-forget-clean-1"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
 name = "avoid-core-mem-forget-remediated-1"
 version = "0.1.0"
 dependencies = [
@@ -105,6 +112,13 @@ dependencies = [
 
 [[package]]
 name = "avoid-unsafe-block-vulnerable-1"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
+name = "avoid-vec-map-input-clean-1"
 version = "0.1.0"
 dependencies = [
  "soroban-sdk",
@@ -242,6 +256,13 @@ name = "const-oid"
 version = "0.9.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2459377285ad874054d797f3ccebf984978aa39129f6eafde5cdc8315b612f8"
+
+[[package]]
+name = "contract-import-dependency-clean-1"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
 
 [[package]]
 name = "contract-import-dependency-remediated-1"
@@ -471,6 +492,48 @@ dependencies = [
 ]
 
 [[package]]
+name = "division-by-zero-clean-1"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
+name = "division-by-zero-remediated-1"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
+name = "division-by-zero-remediated-2"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
+name = "division-by-zero-vulnerable-1"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
+name = "division-by-zero-vulnerable-2"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
+name = "dos-unbounded-operation-clean-1"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
 name = "dos-unbounded-operation-remediated-1"
 version = "0.1.0"
 dependencies = [
@@ -507,6 +570,13 @@ dependencies = [
 
 [[package]]
 name = "dos-unbounded-operation-vulnerable-3"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
+name = "dos-unexpected-revert-with-storage-clean-1"
 version = "0.1.0"
 dependencies = [
  "soroban-sdk",
@@ -552,6 +622,13 @@ name = "downcast-rs"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "75b325c5dbd37f80359721ad39aca5a29fb04c89279657cffdda8736d0c0b9d2"
+
+[[package]]
+name = "dynamic-storage-clean-1"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
 
 [[package]]
 name = "dynamic-storage-remediated-1"
@@ -696,6 +773,13 @@ name = "fnv"
 version = "1.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3f9eec918d3f24069decb9af1554cad7c880e2da24a9afd88aca000531ab82c1"
+
+[[package]]
+name = "front-running-clean-1"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
 
 [[package]]
 name = "front-running-remediated-1"
@@ -862,6 +946,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8e04e2fd2b8188ea827b32ef11de88377086d690286ab35747ef7f9bf3ccb590"
 
 [[package]]
+name = "ineffective-extend-ttl-clean-1"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
 name = "ineffective-extend-ttl-remediated-1"
 version = "0.1.0"
 dependencies = [
@@ -883,6 +974,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "insufficiently-random-values-clean-1"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
 name = "insufficiently-random-values-remediated-1"
 version = "0.1.0"
 dependencies = [
@@ -891,76 +989,6 @@ dependencies = [
 
 [[package]]
 name = "insufficiently-random-values-vulnerable-1"
-version = "0.1.0"
-dependencies = [
- "soroban-sdk",
-]
-
-[[package]]
-name = "integer-overflow-or-underflow-remediated-1"
-version = "0.1.0"
-dependencies = [
- "soroban-sdk",
-]
-
-[[package]]
-name = "integer-overflow-or-underflow-remediated-2"
-version = "0.1.0"
-dependencies = [
- "soroban-sdk",
-]
-
-[[package]]
-name = "integer-overflow-or-underflow-remediated-3"
-version = "0.1.0"
-dependencies = [
- "soroban-sdk",
-]
-
-[[package]]
-name = "integer-overflow-or-underflow-remediated-4"
-version = "0.1.0"
-dependencies = [
- "soroban-sdk",
-]
-
-[[package]]
-name = "integer-overflow-or-underflow-remediated-5"
-version = "0.1.0"
-dependencies = [
- "soroban-sdk",
-]
-
-[[package]]
-name = "integer-overflow-or-underflow-vulnerable-1"
-version = "0.1.0"
-dependencies = [
- "soroban-sdk",
-]
-
-[[package]]
-name = "integer-overflow-or-underflow-vulnerable-2"
-version = "0.1.0"
-dependencies = [
- "soroban-sdk",
-]
-
-[[package]]
-name = "integer-overflow-or-underflow-vulnerable-3"
-version = "0.1.0"
-dependencies = [
- "soroban-sdk",
-]
-
-[[package]]
-name = "integer-overflow-or-underflow-vulnerable-4"
-version = "0.1.0"
-dependencies = [
- "soroban-sdk",
-]
-
-[[package]]
-name = "integer-overflow-or-underflow-vulnerable-5"
 version = "0.1.0"
 dependencies = [
  "soroban-sdk",
@@ -1056,6 +1084,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e2d80299ef12ff69b16a84bb182e3b9df68b5a91574d3d4fa6e41b65deec4df1"
 dependencies = [
  "adler2",
+]
+
+[[package]]
+name = "missing-new-admin-auth-clean-1"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
 ]
 
 [[package]]
@@ -1422,6 +1457,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "set-contract-storage-clean-1"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
+name = "set-contract-storage-clean-2"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
 name = "set-contract-storage-remediated-1"
 version = "0.1.0"
 dependencies = [
@@ -1764,6 +1813,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "storage-change-events-clean-1"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
 name = "storage-change-events-remediated-1"
 version = "0.1.0"
 dependencies = [
@@ -1854,6 +1910,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "token-interface-events-clean-1"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
 name = "token-interface-events-remediated-1"
 version = "0.1.0"
 dependencies = [
@@ -1867,6 +1930,13 @@ version = "0.1.0"
 dependencies = [
  "soroban-sdk",
  "soroban-token-sdk",
+]
+
+[[package]]
+name = "token-interface-inference-clean-1"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
 ]
 
 [[package]]
@@ -1890,6 +1960,13 @@ name = "typenum"
 version = "1.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "42ff0bf0c66b8238c6f3b578df37d0b7848e55df8577b3f74f92a69acceeb825"
+
+[[package]]
+name = "uncached-storage-modification-clean-1"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
 
 [[package]]
 name = "uncached-storage-modification-remediated-1"
@@ -1975,6 +2052,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "unnecessary-admin-parameter-clean-1"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
+name = "unnecessary-lint-allow-clean-1"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
 name = "unnecessary-lint-allow-remediated-1"
 version = "0.1.0"
 dependencies = [
@@ -1987,6 +2078,13 @@ name = "unnecessary-lint-allow-vulnerable-1"
 version = "0.1.0"
 dependencies = [
  "scout-utils",
+ "soroban-sdk",
+]
+
+[[package]]
+name = "unprotected-mapping-operation-clean-1"
+version = "0.1.0"
+dependencies = [
  "soroban-sdk",
 ]
 
@@ -2013,6 +2111,13 @@ dependencies = [
 
 [[package]]
 name = "unprotected-mapping-operation-vulnerable-2"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
+name = "unprotected-update-current-contract-wasm-clean-1"
 version = "0.1.0"
 dependencies = [
  "soroban-sdk",
@@ -2047,6 +2152,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "unrestricted-transfer-from-clean-1"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
 name = "unrestricted-transfer-from-remediated-1"
 version = "0.1.0"
 dependencies = [
@@ -2055,6 +2167,13 @@ dependencies = [
 
 [[package]]
 name = "unrestricted-transfer-from-vulnerable-1"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
+name = "unsafe-expect-clean-1"
 version = "0.1.0"
 dependencies = [
  "soroban-sdk",
@@ -2117,6 +2236,34 @@ dependencies = [
 ]
 
 [[package]]
+name = "unsafe-lossy-cast-clean-1"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
+name = "unsafe-lossy-cast-remediated-1"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
+name = "unsafe-lossy-cast-vulnerable-1"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
+name = "unsafe-map-get-clean-1"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
 name = "unsafe-map-get-remediated-1"
 version = "0.1.0"
 dependencies = [
@@ -2125,6 +2272,13 @@ dependencies = [
 
 [[package]]
 name = "unsafe-map-get-vulnerable-1"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
+name = "unsafe-unwrap-clean-1"
 version = "0.1.0"
 dependencies = [
  "soroban-sdk",
@@ -2195,6 +2349,13 @@ dependencies = [
 
 [[package]]
 name = "unsafe-unwrap-vulnerable-4"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
+name = "unused-return-enum-clean-1"
 version = "0.1.0"
 dependencies = [
  "soroban-sdk",

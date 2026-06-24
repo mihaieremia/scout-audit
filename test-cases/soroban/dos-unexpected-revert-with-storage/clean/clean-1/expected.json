@@ -1,0 +1,5 @@
+{
+  "findings": [
+    { "detector": "dos-unexpected-revert-with-storage", "count": 0 }
+  ]
+}

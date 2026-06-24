@@ -6,6 +6,7 @@ extern crate rustc_span;
 
 use clippy_utils::diagnostics::span_lint_and_help;
 use common::{
+    analysis::{get_node_type_opt, is_soroban_map, is_soroban_vec},
     declarations::{Severity, VulnerabilityClass},
     macros::expose_lint_info,
 };
@@ -36,12 +37,29 @@ dylint_linting::declare_late_lint!(
     LINT_MESSAGE
 );
 
-struct ForLoopVisitor {
+struct ForLoopVisitor<'tcx, 'tcx_ref> {
+    cx: &'tcx_ref LateContext<'tcx>,
     constants: Vec<HirId>,
     span_constant: Vec<Span>,
 }
 
-impl ForLoopVisitor {
+impl<'tcx, 'tcx_ref> ForLoopVisitor<'tcx, 'tcx_ref> {
+    /// A `.len()` call on a bounded Soroban collection (`Vec`, `Map`) yields a
+    /// value bounded by the collection's size, so a loop ranging over it is not
+    /// unbounded. Treat such calls as constant-equivalent bounds.
+    fn is_bounded_len_call(&self, expr: &Expr) -> bool {
+        if let ExprKind::MethodCall(segment, receiver, _, _) = expr.kind {
+            if segment.ident.name.as_str() != "len" {
+                return false;
+            }
+            if let Some(receiver_ty) = get_node_type_opt(self.cx, &receiver.hir_id) {
+                return is_soroban_vec(self.cx, receiver_ty)
+                    || is_soroban_map(self.cx, receiver_ty);
+            }
+        }
+        false
+    }
+
     fn is_qpath_constant(&self, path: &QPath) -> bool {
         if let QPath::Resolved(_, path) = path {
             // We search the path, if it has been previously defined or is a constant then we are good
@@ -75,7 +93,9 @@ impl ForLoopVisitor {
                 self.is_expr_constant(array_expr) && self.is_expr_constant(index_expr)
             }
             ExprKind::Lit(_) => true,
-            ExprKind::MethodCall(_, call_expr, _, _) => self.is_expr_constant(call_expr),
+            ExprKind::MethodCall(_, call_expr, _, _) => {
+                self.is_bounded_len_call(current_expr) || self.is_expr_constant(call_expr)
+            }
             ExprKind::Path(qpath_expr) => self.is_qpath_constant(&qpath_expr),
             ExprKind::Repeat(repeat_expr, _) => self.is_expr_constant(repeat_expr),
             ExprKind::Struct(_, expr_fields, _) => expr_fields
@@ -86,7 +106,7 @@ impl ForLoopVisitor {
     }
 }
 
-impl<'tcx> Visitor<'tcx> for ForLoopVisitor {
+impl<'tcx> Visitor<'tcx> for ForLoopVisitor<'tcx, '_> {
     fn visit_expr(&mut self, expr: &'tcx Expr<'tcx>) {
         // Constant detection
         if let ExprKind::Block(a, _) = expr.kind {
@@ -137,6 +157,7 @@ impl<'tcx> LateLintPass<'tcx> for DosUnboundedOperation {
         _: LocalDefId,
     ) {
         let mut visitor = ForLoopVisitor {
+            cx,
             span_constant: Vec::new(),
             constants: Vec::new(),
         };

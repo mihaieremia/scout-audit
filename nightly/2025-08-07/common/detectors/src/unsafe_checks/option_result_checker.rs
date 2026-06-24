@@ -4,7 +4,9 @@ extern crate rustc_span;
 
 use analysis::{get_node_type_opt, match_type_to_str, ConstantAnalyzer};
 use if_chain::if_chain;
-use rustc_hir::{def::Res, BinOpKind, Expr, ExprKind, HirId, LangItem, MatchSource, QPath, UnOp};
+use rustc_hir::{
+    def::Res, BinOpKind, Expr, ExprKind, HirId, LangItem, MatchSource, Pat, PatKind, QPath, UnOp,
+};
 use rustc_lint::LateContext;
 use rustc_span::Symbol;
 use std::collections::HashSet;
@@ -52,8 +54,24 @@ impl ConditionalChecker {
                 result
             }
             ExprKind::MethodCall(..) => Self::handle_condition(condition, false),
+            // `if let Some(..) = opt` / `if let Ok(..) = res` guards.
+            ExprKind::Let(let_expr) => Self::handle_let_condition(let_expr.pat, let_expr.init),
             _ => HashSet::new(),
         }
+    }
+
+    /// Handles `if let` conditions: an `if let Some(..)`/`Ok(..)` pattern on a
+    /// local proves the value is present inside the then-branch.
+    fn handle_let_condition(pat: &Pat<'_>, init: &Expr<'_>) -> HashSet<Self> {
+        if_chain! {
+            if let Some(check_type) = CheckType::from_pattern(pat);
+            if let ExprKind::Path(QPath::Resolved(_, checked_expr_path)) = init.kind;
+            if let Res::Local(checked_expr_hir_id) = checked_expr_path.res;
+            then {
+                return std::iter::once(Self { check_type, checked_expr_hir_id }).collect();
+            }
+        }
+        HashSet::new()
     }
 }
 
@@ -73,6 +91,24 @@ impl CheckType {
             "is_none" => Some(Self::IsNone),
             "is_ok" => Some(Self::IsOk),
             "is_err" => Some(Self::IsErr),
+            _ => None,
+        }
+    }
+
+    /// Maps an `if let` pattern to a `CheckType`. Only the present-value
+    /// variants (`Some`/`Ok`) are recognized, since matching them proves the
+    /// value can be unwrapped safely inside the then-branch.
+    fn from_pattern(pat: &Pat<'_>) -> Option<Self> {
+        match &pat.kind {
+            // Look through `&`/`&mut` patterns produced by match ergonomics.
+            PatKind::Ref(inner, _) => Self::from_pattern(inner),
+            PatKind::TupleStruct(QPath::Resolved(_, path), ..) => {
+                match path.segments.last()?.ident.name.as_str() {
+                    "Some" => Some(Self::IsSome),
+                    "Ok" => Some(Self::IsOk),
+                    _ => None,
+                }
+            }
             _ => None,
         }
     }

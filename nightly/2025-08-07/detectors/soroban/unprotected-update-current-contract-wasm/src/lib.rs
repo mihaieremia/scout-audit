@@ -8,7 +8,10 @@ use std::collections::{HashMap, HashSet};
 
 use clippy_utils::diagnostics::span_lint_and_help;
 use common::{
-    analysis::{is_soroban_address, is_soroban_env, is_soroban_function, FunctionCallVisitor},
+    analysis::{
+        is_auth_reachable, is_soroban_address, is_soroban_env, is_soroban_function,
+        FunctionCallVisitor,
+    },
     declarations::{Severity, VulnerabilityClass},
     macros::expose_lint_info,
 };
@@ -25,6 +28,29 @@ use rustc_span::{
 };
 
 const LINT_MESSAGE: &str = "This update_current_contract_wasm is called without access control";
+
+/// Free functions injected by the OpenZeppelin `stellar-macros` access-control
+/// attribute macros (`#[only_owner]`, `#[only_admin]`). Their bodies live in the
+/// external `stellar-access` crate and internally call `require_auth`, so they are
+/// invisible to both the inline `addr.require_auth()` check and the local call-graph
+/// reachability analysis. Recognizing them by name credits the injected authorization.
+const ACCESS_CONTROL_AUTH_ENFORCERS: [&str; 2] = ["enforce_owner_auth", "enforce_admin_auth"];
+
+/// Returns `true` if `expr` is a call to an OpenZeppelin access-control auth enforcer
+/// (see [`ACCESS_CONTROL_AUTH_ENFORCERS`]).
+fn is_access_control_auth_call(cx: &LateContext<'_>, expr: &Expr<'_>) -> bool {
+    if let ExprKind::Call(callee, _) = &expr.kind {
+        if let ExprKind::Path(qpath) = &callee.kind {
+            if let Some(def_id) = cx.qpath_res(qpath, callee.hir_id).opt_def_id() {
+                let path = cx.tcx.def_path_str(def_id);
+                return ACCESS_CONTROL_AUTH_ENFORCERS
+                    .iter()
+                    .any(|enforcer| path.ends_with(enforcer));
+            }
+        }
+    }
+    false
+}
 
 #[expose_lint_info]
 pub static UNPROTECTED_UPDATE_CURRENT_CONTRACT_WASM_INFO: LintInfo = LintInfo {
@@ -54,6 +80,15 @@ struct UnprotectedUpdateCurrentContractWasm {
 impl<'tcx> LateLintPass<'tcx> for UnprotectedUpdateCurrentContractWasm {
     fn check_crate_post(&mut self, cx: &LateContext<'tcx>) {
         for (callee_def_id, storage_spans) in &self.unauthorized_update_wasm_calls {
+            // If authorization is reachable from the callee itself (e.g. it delegates
+            // `require_auth` to a helper), the upgrade is protected.
+            if is_auth_reachable(
+                *callee_def_id,
+                &self.function_call_graph,
+                &self.authorized_functions,
+            ) {
+                continue;
+            }
             let is_callee_soroban = is_soroban_function(cx, &self.checked_functions, callee_def_id);
             let (is_called_by_soroban, is_soroban_caller_authed) = self
                 .function_call_graph
@@ -62,12 +97,17 @@ impl<'tcx> LateLintPass<'tcx> for UnprotectedUpdateCurrentContractWasm {
                     if callees.contains(callee_def_id) {
                         let is_caller_soroban =
                             is_soroban_function(cx, &self.checked_functions, caller);
-                        // Update if the caller is Soroban and check if it's authorized only if it's a Soroban caller
+                        // A Soroban caller authorizes the call if `require_auth` is
+                        // reachable from it through the call graph, not only inline.
                         (
                             acc.0 || is_caller_soroban,
                             acc.1
                                 && (!is_caller_soroban
-                                    || self.authorized_functions.contains(caller)),
+                                    || is_auth_reachable(
+                                        *caller,
+                                        &self.function_call_graph,
+                                        &self.authorized_functions,
+                                    )),
                         )
                     } else {
                         acc
@@ -150,6 +190,13 @@ impl<'tcx> UnprotectedUpdateVisitor<'tcx, '_> {
 impl<'tcx> Visitor<'tcx> for UnprotectedUpdateVisitor<'tcx, '_> {
     fn visit_expr(&mut self, expr: &'tcx Expr<'_>) {
         if self.auth_found {
+            return;
+        }
+
+        // Recognize authorization injected by OZ `#[only_owner]` / `#[only_admin]`
+        // macros, which call an external enforcer instead of `addr.require_auth()`.
+        if is_access_control_auth_call(self.cx, expr) {
+            self.auth_found = true;
             return;
         }
 

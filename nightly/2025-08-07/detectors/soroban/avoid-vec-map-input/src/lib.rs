@@ -26,7 +26,7 @@ pub static AVOID_VEC_MAP_INPUT_INFO: LintInfo = LintInfo {
     short_message: LINT_MESSAGE,
     long_message: "Soroban Vec and Map<K, V> parameters arrive as raw Val values. \
         Validate or normalize every element before storing or reusing them so a bad conversion does not halt contract execution.",
-    severity: Severity::Medium,
+    severity: Severity::Enhancement,
     help: "https://coinfabrik.github.io/scout-audit/docs/detectors/soroban/avoid-vec-map-input",
     vulnerability_class: VulnerabilityClass::BestPractices,
 };

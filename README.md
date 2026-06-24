@@ -72,9 +72,9 @@ extra flags (e.g. `--output-format sarif`).
 
 ## Detectors
 
-This fork ships **46 detectors** — 35 Soroban-specific (`nightly/2026-05-28/detectors/soroban/`)
+This fork ships **52 detectors** — 41 Soroban-specific (`nightly/2026-05-28/detectors/soroban/`)
 and 11 shared Rust detectors that also apply to Soroban contracts
-(`nightly/2026-05-28/detectors/rust/`). **10 of them are new in this fork**, with a strong
+(`nightly/2026-05-28/detectors/rust/`). **16 of them are new in this fork**, with a strong
 focus on authorization and cross-contract permission leakage.
 
 Every detector's `src/lib.rs` carries a module-level doc comment describing what it does,
@@ -94,8 +94,14 @@ Highlights of the new detectors:
 | `unsafe-temporary-storage` | Medium | critical keys stored in `temporary()` (unrecoverable after archival) |
 | `unchecked-cross-contract-result` | Medium | an ignored `try_*` `Result` from a client |
 | `debug-assert-in-contract` | Medium | `debug_assert!*` (dead code under the release profile) |
+| `auth-address-mismatch` | Critical | `require_auth` on one address but per-user state written for a different address |
 | `division-by-zero` | Medium | division by a divisor not proven non-zero |
+| `non-terminating-loop` | Medium | a bare `loop {}` with no reachable exit |
 | `unsafe-lossy-cast` | Medium | narrowing / sign-changing `as` casts |
+| `linear-scan-in-loop` | Enhancement | `Vec::contains` inside a loop (O(n²)) |
+| `clone-in-loop` | Enhancement | cloning a host collection on each loop iteration |
+| `instance-storage-per-user-key` | Enhancement | per-user data in always-loaded `instance()` storage |
+| `raw-symbol-storage-key` | Enhancement | a raw `Symbol`/string storage key instead of a typed `DataKey` enum |
 
 ## Repository layout
 

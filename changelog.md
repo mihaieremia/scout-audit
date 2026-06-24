@@ -57,13 +57,13 @@ three structural causes (`6565e6a9`):
 
 ## New detectors
 
-Ten detectors that do not exist upstream:
+Sixteen detectors that do not exist upstream:
 
 **Accuracy phase** (`6565e6a9`):
 - `division-by-zero` — `/`/`%` by a divisor not proven non-zero.
 - `unsafe-lossy-cast` — narrowing / sign-changing `as` casts.
 
-**Detector-expansion phase** (`0d0d62b1`, `2d10fd7f`):
+**Detector-expansion phase, waves 1–2** (`0d0d62b1`, `2d10fd7f`):
 - `unprotected-token-admin-operation` (Critical) — `mint`/`burn`/`clawback`/
   `set_authorized`/`set_admin` on a token client with no reachable `require_auth`.
 - `unscoped-authorize-as-current-contract` (Critical) — `authorize_as_current_contract`
@@ -80,6 +80,18 @@ Ten detectors that do not exist upstream:
   swallows a failed cross-contract/token call.
 - `debug-assert-in-contract` (Medium) — `debug_assert!*` is dead code under the Soroban
   release profile, so the check never runs on-chain.
+
+**Detector-expansion phase, wave 3** (`d16d1a77`):
+- `auth-address-mismatch` (Critical) — `require_auth` on address A but per-user storage
+  written for a distinct address B; same-address and admin/owner auth are credited.
+- `non-terminating-loop` (Medium) — a bare `loop {}` with no reachable break/return/panic.
+- `clone-in-loop` (Enhancement) — `.clone()` of an outside-the-loop host collection (Vec/
+  Map/Bytes/String) inside a loop.
+- `linear-scan-in-loop` (Enhancement) — `Vec::contains`/`contains_key` inside a loop (O(n²)).
+- `instance-storage-per-user-key` (Enhancement) — per-user data keyed in always-loaded
+  `instance()` storage (bounded-set exempt).
+- `raw-symbol-storage-key` (Enhancement) — a raw `Symbol`/string storage key instead of a
+  typed `DataKey` enum.
 
 See [`docs/new-detectors-catalog.md`](docs/new-detectors-catalog.md) for the full design
 rationale, detection strategies, and additional candidates.

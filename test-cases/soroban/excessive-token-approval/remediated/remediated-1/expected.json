@@ -1,0 +1,5 @@
+{
+  "findings": [
+    { "detector": "excessive-token-approval", "count": 0 }
+  ]
+}

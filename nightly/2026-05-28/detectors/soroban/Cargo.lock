@@ -286,6 +286,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "877a4ace8713b0bcf2a4e7eec82529c029f1d0619886d18145fea96c3ffe5c0f"
 
 [[package]]
+name = "excessive-token-approval"
+version = "0.1.0"
+dependencies = [
+ "clippy_utils",
+ "common",
+ "dylint_internal",
+ "dylint_linting",
+ "if_chain",
+]
+
+[[package]]
 name = "find-msvc-tools"
 version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -567,6 +578,17 @@ checksum = "1fa76a2c86f704bdb222d66965fb3d63269ce38518b83cb0575fca855ebb6316"
 dependencies = [
  "adler2",
  "simd-adler32",
+]
+
+[[package]]
+name = "missing-initialization-guard"
+version = "0.1.0"
+dependencies = [
+ "clippy_utils",
+ "common",
+ "dylint_internal",
+ "dylint_linting",
+ "if_chain",
 ]
 
 [[package]]
@@ -1165,6 +1187,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "unscoped-authorize-as-current-contract"
+version = "0.1.0"
+dependencies = [
+ "clippy_utils",
+ "common",
+ "dylint_internal",
+ "dylint_linting",
+ "if_chain",
+]
+
+[[package]]
 name = "untrusted"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1172,6 +1205,17 @@ checksum = "8ecb6da28b8a351d773b68d5825ac39017e680750f980f3a1a85cd8dd28a47c1"
 
 [[package]]
 name = "unused-return-enum"
+version = "0.1.0"
+dependencies = [
+ "clippy_utils",
+ "common",
+ "dylint_internal",
+ "dylint_linting",
+ "if_chain",
+]
+
+[[package]]
+name = "unvalidated-cross-contract-target"
 version = "0.1.0"
 dependencies = [
  "clippy_utils",

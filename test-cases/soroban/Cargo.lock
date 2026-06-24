@@ -1014,6 +1014,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "40404c3f5f511ec4da6fe866ddf6a717c309fdbb69fbbad7b0f3edab8f2e835f"
 
 [[package]]
+name = "excessive-token-approval-remediated-1"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+ "soroban-token-sdk",
+]
+
+[[package]]
+name = "excessive-token-approval-vulnerable-1"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+ "soroban-token-sdk",
+]
+
+[[package]]
 name = "ff"
 version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1370,6 +1386,20 @@ name = "memchr"
 version = "2.7.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "78ca9ab1a0babb1e7d5695e3530886289c18cf2f87ec19a575a0abdce112e3a3"
+
+[[package]]
+name = "missing-initialization-guard-remediated-1"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
+name = "missing-initialization-guard-vulnerable-1"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
 
 [[package]]
 name = "missing-new-admin-auth-clean-1"
@@ -2778,6 +2808,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "unscoped-authorize-as-current-contract-remediated-1"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
+name = "unscoped-authorize-as-current-contract-vulnerable-1"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
 name = "unused-return-enum-clean-1"
 version = "0.1.0"
 dependencies = [
@@ -2807,6 +2851,20 @@ dependencies = [
 
 [[package]]
 name = "unused-return-enum-vulnerable-1"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
+name = "unvalidated-cross-contract-target-remediated-1"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
+name = "unvalidated-cross-contract-target-vulnerable-1"
 version = "0.1.0"
 dependencies = [
  "soroban-sdk",

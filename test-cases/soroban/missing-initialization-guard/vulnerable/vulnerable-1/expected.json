@@ -1,0 +1,5 @@
+{
+  "findings": [
+    { "detector": "missing-initialization-guard", "count": 1, "lines": [16] }
+  ]
+}

@@ -1,16 +1,19 @@
+# PLACEHOLDER: rename `name` to the hyphenated detector id (must match the
+# crate directory under nightly/<date>/detectors/soroban/<name>/).
 [package]
-name = "detector-name"
-version = "0.1.0"
 edition = "2021"
+name = "your-detector-name"
+version = "0.1.0"
 
 [lib]
 crate-type = ["cdylib"]
 
 [dependencies]
+clippy_utils = { workspace = true }
+common = { workspace = true }
+dylint_internal = { workspace = true }
 dylint_linting = { workspace = true }
 if_chain = { workspace = true }
-
-scout-audit-clippy-utils = { workspace = true }
 
 [package.metadata.rust-analyzer]
 rustc_private = true

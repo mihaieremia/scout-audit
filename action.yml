@@ -74,6 +74,12 @@ runs:
         CONTRACTS: ${{ inputs.contracts }}
         EXTRA: ${{ inputs.extra-args }}
         FAIL_ON_FINDINGS: ${{ inputs.fail-on-findings }}
+        # soroban-sdk's `experimental_spec_shaking_v2` build script hard-errors under
+        # plain `cargo check` (it expects `stellar contract build`). Scout only
+        # type-checks + lints — it never emits a deployable artifact — so signalling
+        # build-system support lets the dependency compile and the contract actually
+        # get analyzed instead of silently reporting zero findings.
+        SOROBAN_SDK_BUILD_SYSTEM_SUPPORTS_SPEC_SHAKING_V2: "1"
       run: |
         set -euo pipefail
         mkdir -p "$OUT_DIR"

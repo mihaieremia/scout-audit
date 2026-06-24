@@ -23,6 +23,7 @@
 //! Severity: Enhancement · Class: BestPractices.
 
 extern crate rustc_hir;
+extern crate rustc_middle;
 extern crate rustc_span;
 
 use clippy_utils::diagnostics::span_lint_and_help;
@@ -36,6 +37,7 @@ use rustc_hir::{
     Expr, ExprKind,
 };
 use rustc_lint::{LateContext, LateLintPass};
+use rustc_middle::ty::TyKind;
 use rustc_span::{def_id::DefId, Span};
 use std::{
     collections::{HashMap, HashSet},
@@ -67,6 +69,37 @@ struct StorageChangeEvents {
     checked_functions: HashSet<String>,
     eventless_storage_changers: HashSet<DefId>,
     defids_with_events: HashSet<DefId>,
+    /// Functions whose own body directly contains a storage mutator. The
+    /// transitive write check would otherwise flag read-only getters that merely
+    /// reach a mutator through a branch they never take.
+    direct_storage_writers: HashSet<DefId>,
+}
+
+/// Whether a function returns a value worth observing. A getter returns a
+/// concrete value (`-> u64`, `-> bool`, `-> Result<State, E>`); a mutator either
+/// returns unit or a value-less wrapper (`()`, `Result<(), E>`, `Option<()>`).
+/// Read-only getters that reach a storage mutator only transitively should not
+/// be told to emit events.
+fn returns_meaningful_value(cx: &LateContext<'_>, func: &DefId) -> bool {
+    let output = cx.tcx.fn_sig(*func).skip_binder().output().skip_binder();
+    !is_value_less_ty(cx, output)
+}
+
+/// `()` itself, or a `Result`/`Option` whose success payload is `()`.
+fn is_value_less_ty(cx: &LateContext<'_>, ty: rustc_middle::ty::Ty<'_>) -> bool {
+    match ty.kind() {
+        TyKind::Tuple(elems) => elems.is_empty(),
+        TyKind::Adt(adt_def, args) => {
+            let path = cx.tcx.def_path_str(adt_def.did());
+            let is_wrapper = path.ends_with("Result") || path.ends_with("Option");
+            is_wrapper
+                && args
+                    .types()
+                    .next()
+                    .is_some_and(|inner| matches!(inner.kind(), TyKind::Tuple(e) if e.is_empty()))
+        }
+        _ => false,
+    }
 }
 
 /// Used to verify if, starting from a specific parent in the call graph, an event is emitted at any point of the flow.
@@ -139,8 +172,15 @@ impl<'tcx> LateLintPass<'tcx> for StorageChangeEvents {
                     &self.eventless_storage_changers,
                 );
 
+                // Suppress read-only getters: a function that returns a concrete
+                // value but never writes storage in its own body is reading, not
+                // mutating. Any reachable mutator belongs to a branch it does not
+                // take, so advising it to emit events is a false positive.
+                let is_read_only_getter = returns_meaningful_value(cx, func)
+                    && !self.direct_storage_writers.contains(func);
+
                 // If both conditions are met, emit an warning.
-                if !emits_event_in_flow && calls_unsafe_storage_setter {
+                if !emits_event_in_flow && calls_unsafe_storage_setter && !is_read_only_getter {
                     span_lint_and_help(
                         cx,
                         STORAGE_CHANGE_EVENTS,
@@ -181,6 +221,13 @@ impl<'tcx> LateLintPass<'tcx> for StorageChangeEvents {
         };
 
         storage_change_events_visitor.visit_body(body);
+
+        // If the function's own body directly mutates storage, record it so that
+        // the transitive check below can tell direct writers apart from callers
+        // that only reach a mutator through a branch they never take.
+        if storage_change_events_visitor.is_storage_changer {
+            self.direct_storage_writers.insert(def_id);
+        }
 
         // If the function modifies the storage and does not emit event, we keep record of its defid as an eventless storage changer.
         if storage_change_events_visitor.is_storage_changer

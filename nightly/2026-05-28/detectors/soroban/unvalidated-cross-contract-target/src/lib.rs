@@ -31,12 +31,14 @@ use clippy_utils::diagnostics::span_lint_and_help;
 use common::{
     analysis::{
         get_expr_hir_id_opt, get_node_type_opt, is_auth_reachable, is_soroban_address,
-        is_soroban_storage, match_type_to_str, FunctionCallVisitor, SorobanStorageType,
+        is_soroban_function, is_soroban_storage, match_type_to_str, FunctionCallVisitor,
+        SorobanStorageType,
     },
     declarations::{Severity, VulnerabilityClass},
     macros::expose_lint_info,
 };
 use rustc_hir::{
+    def::DefKind,
     intravisit::{walk_expr, walk_local, FnKind, Visitor},
     BinOpKind, Body, Expr, ExprKind, FnDecl, HirId, LetStmt, PatKind, QPath, UnOp,
 };
@@ -76,6 +78,17 @@ struct Candidate {
     span: Span,
 }
 
+/// One caller forwards its own address parameter into a callee's address
+/// parameter: `caller`'s `caller_index`-th address param flows, as an argument,
+/// into `callee`'s `callee_index`-th address param. Used to propagate
+/// attacker-controlled taint across the call graph at parameter granularity.
+struct TaintEdge {
+    caller: DefId,
+    caller_index: usize,
+    callee: DefId,
+    callee_index: usize,
+}
+
 #[derive(Default)]
 struct UnvalidatedCrossContractTarget {
     function_call_graph: HashMap<DefId, HashSet<DefId>>,
@@ -87,10 +100,25 @@ struct UnvalidatedCrossContractTarget {
     /// Per-function set of address-parameter indices that are guarded inline
     /// (allowlist membership, equality vs storage, or `require_auth`).
     guarded_params: HashMap<DefId, HashSet<usize>>,
+    /// Fully-qualified names of every analyzed function, used by
+    /// `is_soroban_function` to recognize public contract ABI entry points.
+    checked_functions: HashSet<String>,
+    /// Number of address parameters per function (used to seed entry-point taint).
+    address_param_counts: HashMap<DefId, usize>,
+    /// Parameter-granular taint edges: a caller forwarding its address param into
+    /// a callee's address param.
+    taint_edges: Vec<TaintEdge>,
 }
 
 impl<'tcx> LateLintPass<'tcx> for UnvalidatedCrossContractTarget {
     fn check_crate_post(&mut self, cx: &LateContext<'tcx>) {
+        // An address is attacker-controlled only if it originates from a *public
+        // contract entry point* parameter. Seed the entry points, then propagate
+        // that taint downstream through parameter-forwarding edges, stopping at any
+        // function that guards or authorizes the forwarded parameter (a validated
+        // address is no longer attacker-controlled).
+        let attacker_reachable = self.compute_attacker_reachable(cx);
+
         for (def_id, candidates) in &self.candidates {
             // A function that delegates `require_auth` to a helper still authorizes
             // its targets; credit auth reachable through the call graph.
@@ -99,13 +127,20 @@ impl<'tcx> LateLintPass<'tcx> for UnvalidatedCrossContractTarget {
                 &self.function_call_graph,
                 &self.authorized_functions,
             );
+            if auth_reachable {
+                continue;
+            }
             let guarded = self.guarded_params.get(def_id);
 
             for candidate in candidates {
-                if auth_reachable {
+                if guarded.is_some_and(|set| set.contains(&candidate.param_index)) {
                     continue;
                 }
-                if guarded.is_some_and(|set| set.contains(&candidate.param_index)) {
+                // Only fire when the target address is reachable from a public
+                // entry-point parameter without validation along the way. Internal
+                // wrappers that receive a storage-read or allowlisted address are
+                // not attacker-controlled and are not flagged.
+                if !attacker_reachable.contains(&(*def_id, candidate.param_index)) {
                     continue;
                 }
                 span_lint_and_help(
@@ -129,11 +164,14 @@ impl<'tcx> LateLintPass<'tcx> for UnvalidatedCrossContractTarget {
         span: Span,
         local_def_id: LocalDefId,
     ) {
+        let def_id = local_def_id.to_def_id();
+        // Record every function (including macro-generated ABI siblings) so
+        // `is_soroban_function` can recognize public contract entry points.
+        self.checked_functions.insert(cx.tcx.def_path_str(def_id));
+
         if span.from_expansion() {
             return;
         }
-
-        let def_id = local_def_id.to_def_id();
 
         let mut function_call_visitor =
             FunctionCallVisitor::new(cx, def_id, &mut self.function_call_graph);
@@ -143,6 +181,7 @@ impl<'tcx> LateLintPass<'tcx> for UnvalidatedCrossContractTarget {
         if params.is_empty() {
             return;
         }
+        self.address_param_counts.insert(def_id, params.len());
 
         let mut visitor = TargetVisitor::new(cx, params);
         visitor.visit_body(body);
@@ -153,12 +192,74 @@ impl<'tcx> LateLintPass<'tcx> for UnvalidatedCrossContractTarget {
         if !visitor.guarded_params.is_empty() {
             self.guarded_params.insert(def_id, visitor.guarded_params);
         }
+        for (caller_index, callee, callee_index) in visitor.taint_edges.drain(..) {
+            self.taint_edges.push(TaintEdge {
+                caller: def_id,
+                caller_index,
+                callee,
+                callee_index,
+            });
+        }
         // A `__constructor` receives its addresses from the deployer at deploy time,
         // not from an attacker-controllable call, so its targets are not flagged.
         // Its guards/auth still feed the call graph for functions it reaches.
         if !visitor.candidates.is_empty() && !is_constructor(cx, def_id) {
             self.candidates.insert(def_id, visitor.candidates);
         }
+    }
+}
+
+impl UnvalidatedCrossContractTarget {
+    /// Computes the set of `(function, address-parameter-index)` pairs that an
+    /// attacker can control. Seeds public contract entry points, then propagates
+    /// taint along parameter-forwarding edges, stopping at any function that
+    /// guards or authorizes the forwarded parameter.
+    fn compute_attacker_reachable(&self, cx: &LateContext<'_>) -> HashSet<(DefId, usize)> {
+        let mut reachable: HashSet<(DefId, usize)> = HashSet::new();
+        let mut worklist: Vec<(DefId, usize)> = Vec::new();
+
+        for (def_id, count) in &self.address_param_counts {
+            if is_constructor(cx, *def_id) {
+                continue;
+            }
+            if !is_soroban_function(cx, &self.checked_functions, def_id) {
+                continue;
+            }
+            for index in 0..*count {
+                if reachable.insert((*def_id, index)) {
+                    worklist.push((*def_id, index));
+                }
+            }
+        }
+
+        while let Some((def_id, index)) = worklist.pop() {
+            // A validated address forwarded downstream is no longer
+            // attacker-controlled, so taint does not propagate past a guard/auth.
+            if is_auth_reachable(
+                def_id,
+                &self.function_call_graph,
+                &self.authorized_functions,
+            ) {
+                continue;
+            }
+            if self
+                .guarded_params
+                .get(&def_id)
+                .is_some_and(|set| set.contains(&index))
+            {
+                continue;
+            }
+            for edge in &self.taint_edges {
+                if edge.caller == def_id && edge.caller_index == index {
+                    let key = (edge.callee, edge.callee_index);
+                    if reachable.insert(key) {
+                        worklist.push(key);
+                    }
+                }
+            }
+        }
+
+        reachable
     }
 }
 
@@ -199,6 +300,9 @@ struct TargetVisitor<'a, 'tcx> {
     authorized_params: HashSet<usize>,
     /// Address-parameter indices guarded by an allowlist/equality/auth check.
     guarded_params: HashSet<usize>,
+    /// Parameter-forwarding edges discovered in this body:
+    /// `(caller_address_index, callee_def_id, callee_address_index)`.
+    taint_edges: Vec<(usize, DefId, usize)>,
 }
 
 impl<'a, 'tcx> TargetVisitor<'a, 'tcx> {
@@ -216,6 +320,7 @@ impl<'a, 'tcx> TargetVisitor<'a, 'tcx> {
             candidates: Vec::new(),
             authorized_params: HashSet::new(),
             guarded_params: HashSet::new(),
+            taint_edges: Vec::new(),
         }
     }
 
@@ -287,6 +392,8 @@ impl<'a, 'tcx> Visitor<'tcx> for TargetVisitor<'a, 'tcx> {
     }
 
     fn visit_expr(&mut self, expr: &'tcx Expr<'tcx>) {
+        self.record_taint_edges(expr);
+
         if let ExprKind::MethodCall(seg, receiver, args, _) = &expr.kind {
             let method_name = seg.ident.name;
 
@@ -344,6 +451,48 @@ impl<'a, 'tcx> Visitor<'tcx> for TargetVisitor<'a, 'tcx> {
 }
 
 impl<'a, 'tcx> TargetVisitor<'a, 'tcx> {
+    /// Records a taint edge whenever this body forwards one of its own address
+    /// parameters into another function's address parameter, so attacker-control
+    /// can be propagated across the call graph in `check_crate_post`.
+    fn record_taint_edges(&mut self, expr: &'tcx Expr<'tcx>) {
+        match &expr.kind {
+            // `g(a, b, c)` / `Type::g(a, b)`: arguments map 1:1 onto parameters.
+            ExprKind::Call(callee, args) => {
+                if let ExprKind::Path(qpath) = &callee.kind {
+                    if let Some(callee_def_id) =
+                        self.cx.qpath_res(qpath, callee.hir_id).opt_def_id()
+                    {
+                        for (raw_pos, arg) in args.iter().enumerate() {
+                            self.try_taint_edge(callee_def_id, raw_pos, arg);
+                        }
+                    }
+                }
+            }
+            // `receiver.m(a, b)`: the receiver is parameter 0, args follow.
+            ExprKind::MethodCall(_, receiver, args, _) => {
+                if let Some(callee_def_id) =
+                    self.cx.typeck_results().type_dependent_def_id(expr.hir_id)
+                {
+                    self.try_taint_edge(callee_def_id, 0, receiver);
+                    for (k, arg) in args.iter().enumerate() {
+                        self.try_taint_edge(callee_def_id, k + 1, arg);
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+
+    /// If `arg` resolves to one of this body's address parameters and the callee's
+    /// `raw_pos`-th parameter is also an address, record the forwarding edge.
+    fn try_taint_edge(&mut self, callee: DefId, raw_pos: usize, arg: &Expr<'tcx>) {
+        if let Some(caller_index) = self.resolve_to_param(arg) {
+            if let Some(callee_index) = callee_addr_param_index(self.cx, callee, raw_pos) {
+                self.taint_edges.push((caller_index, callee, callee_index));
+            }
+        }
+    }
+
     /// Marks the address parameter guarded when one side of an equality is the
     /// parameter and the other side reads from storage.
     fn record_storage_equality(&mut self, param_side: &Expr<'tcx>, storage_side: &'tcx Expr<'tcx>) {
@@ -353,6 +502,27 @@ impl<'a, 'tcx> TargetVisitor<'a, 'tcx> {
             }
         }
     }
+}
+
+/// For a callable `callee`, returns the address-parameter index of its
+/// `raw_pos`-th parameter, or `None` if that parameter is not a Soroban
+/// `Address`. The index counts only address parameters in declaration order, so
+/// it lines up with `collect_address_params` / `Candidate::param_index`.
+fn callee_addr_param_index(cx: &LateContext<'_>, callee: DefId, raw_pos: usize) -> Option<usize> {
+    if !matches!(cx.tcx.def_kind(callee), DefKind::Fn | DefKind::AssocFn) {
+        return None;
+    }
+    let inputs = cx.tcx.fn_sig(callee).skip_binder().skip_binder().inputs();
+    let ty = inputs.get(raw_pos)?;
+    if !is_soroban_address(cx, *ty) {
+        return None;
+    }
+    Some(
+        inputs[..raw_pos]
+            .iter()
+            .filter(|ty| is_soroban_address(cx, **ty))
+            .count(),
+    )
 }
 
 /// `true` if `expr` is (or unwraps to) a `storage.get(&Key)` read on a Soroban

@@ -1,0 +1,5 @@
+{
+  "findings": [
+    { "detector": "front-running", "count": 0 }
+  ]
+}

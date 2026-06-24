@@ -166,6 +166,30 @@ impl FrontRunningVisitor<'_, '_> {
             _ => false,
         }
     }
+
+    /// Returns true when `expr` is the contract spending funds it already holds,
+    /// i.e. the transfer's `from` argument resolves to
+    /// `env.current_contract_address()` (peeling a leading `&`). A self-funded
+    /// refund or sweep cannot be front-run for slippage, so a minimum-amount
+    /// check is meaningless and the finding must be suppressed.
+    fn is_current_contract_address(&self, expr: &Expr) -> bool {
+        let inner = match &expr.kind {
+            ExprKind::AddrOf(_, _, inner, ..) => inner,
+            _ => expr,
+        };
+        if_chain! {
+            if let ExprKind::MethodCall(path_segment, receiver, ..) = &inner.kind;
+            if path_segment.ident.name == Symbol::intern("current_contract_address");
+            if let Some(receiver_type) = get_node_type_opt(self.cx, &receiver.hir_id);
+            then {
+                // Peel references: the receiver is commonly `&Env` (e.g. a
+                // `fn(env: &Env, ..)` helper), which renders as `&soroban_sdk::Env`.
+                receiver_type.peel_refs().to_string() == "soroban_sdk::Env"
+            } else {
+                false
+            }
+        }
+    }
 }
 
 impl<'a, 'tcx> Visitor<'tcx> for FrontRunningVisitor<'a, 'tcx> {
@@ -184,6 +208,9 @@ impl<'a, 'tcx> Visitor<'tcx> for FrontRunningVisitor<'a, 'tcx> {
             if path_segment.ident.name == Symbol::intern("transfer");
             if let Some(receiver_type) = get_node_type_opt(self.cx, &receiver.hir_id);
             if receiver_type.to_string() == "soroban_sdk::token::TokenClient<'_>";
+            // `transfer(from, to, amount)`: a self-funded transfer where `from`
+            // is the contract's own address cannot be front-run for slippage.
+            if !self.is_current_contract_address(&args[0]);
             if let ExprKind::AddrOf(_, _, amount_expr, ..) = args[2].kind;
             if let ExprKind::Path(QPath::Resolved(_, Path { segments, .. }), ..) = amount_expr.kind;
             if let Some(segment) = segments.first();

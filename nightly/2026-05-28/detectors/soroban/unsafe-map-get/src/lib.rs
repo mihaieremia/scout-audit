@@ -1,38 +1,35 @@
 #![feature(rustc_private)]
 //! # unsafe-map-get
 //!
-//! Flags panic-prone reads on a Soroban `Map` whose returned value is not handled
-//! safely.
+//! Flags panic-prone reads on a Soroban `Map` that trap when the key is absent.
 //!
 //! ## What it detects
-//! A `get`, `get_unchecked`, or `try_get_unchecked` call on a `soroban_sdk::Map`
-//! whose result is not consumed safely (e.g. via `unwrap_or`, `map`, `ok_or`,
-//! `match`, or `if let Some(..)`). `unwrap`/`expect` are intentionally not treated
-//! as safe and are covered by the unwrap/expect detectors.
+//! A `get_unchecked` or `try_get_unchecked` call on a `soroban_sdk::Map`. These
+//! accessors assume the key exists. The safe `get`/`try_get` accessors return an
+//! `Option`/`Result` for the missing key and are not flagged.
 //!
 //! ## Why it matters
-//! These accessors panic (trap) when the key is absent, aborting the contract
-//! invocation and potentially making functionality unreachable or enabling a
-//! denial-of-service on a missing or attacker-chosen key.
+//! `get_unchecked`/`try_get_unchecked` panic (trap) when the key is absent,
+//! aborting the contract invocation and potentially making functionality
+//! unreachable or enabling a denial-of-service on a missing or attacker-chosen
+//! key.
 //!
 //! ## Remediation
-//! Use `map.try_get(key).unwrap_or_default()` (or otherwise handle the missing
-//! key) instead of a panicking accessor.
+//! Use `map.get(key)` (returns `Option<V>`) or `map.try_get(key)` (returns
+//! `Result<Option<V>, _>`) and handle the missing key explicitly.
 //!
 //! Severity: Medium · Class: Authorization.
 
-extern crate rustc_errors;
 extern crate rustc_hir;
 extern crate rustc_span;
 
-use clippy_utils::diagnostics::span_lint_and_sugg;
+use clippy_utils::diagnostics::span_lint_and_help;
 use common::{
     analysis::is_soroban_map,
     declarations::{Severity, VulnerabilityClass},
     macros::expose_lint_info,
 };
 use if_chain::if_chain;
-use rustc_errors::Applicability;
 use rustc_hir::{
     intravisit::{walk_expr, FnKind, Visitor},
     Body, Expr, ExprKind, FnDecl,
@@ -41,8 +38,8 @@ use rustc_lint::{LateContext, LateLintPass, LintContext};
 use rustc_span::{def_id::LocalDefId, Span};
 use std::collections::HashSet;
 
-const LINT_MESSAGE: &str = "Unsafe access on Map, method could panic.";
-const UNSAFE_GET_METHODS: [&str; 3] = ["get", "get_unchecked", "try_get_unchecked"];
+const LINT_MESSAGE: &str = "Unchecked access on Map, method panics on a missing key.";
+const UNSAFE_GET_METHODS: [&str; 2] = ["get_unchecked", "try_get_unchecked"];
 
 /// Methods that, when called directly on the `Option` returned by a `Map::get`,
 /// constitute safe handling of the missing-key case and therefore should not be
@@ -73,7 +70,7 @@ const SAFE_OPTION_CONSUMERS: [&str; 18] = [
 pub static UNSAFE_MAP_GET_INFO: LintInfo = LintInfo {
     name: env!("CARGO_PKG_NAME"),
     short_message: LINT_MESSAGE,
-    long_message: "This vulnerability class pertains to the inappropriate usage of the get method for Map in soroban",
+    long_message: "This vulnerability class pertains to the use of the unchecked Map accessors (`get_unchecked`/`try_get_unchecked`) in soroban, which panic when the key is absent",
     severity: Severity::Medium,
     help: "https://coinfabrik.github.io/scout-audit/docs/detectors/soroban/unsafe-map-get",
     vulnerability_class: VulnerabilityClass::Authorization,
@@ -101,7 +98,7 @@ impl<'a, 'tcx> UnsafeMapGetVisitor<'a, 'tcx> {
             .unwrap_or_default()
     }
 
-    /// Returns `true` if `expr` is an unsafe `Map::get`/`get_unchecked`/
+    /// Returns `true` if `expr` is an unchecked `Map::get_unchecked`/
     /// `try_get_unchecked` call on a Soroban `Map`.
     fn is_unsafe_map_get(&self, expr: &Expr<'tcx>) -> bool {
         if_chain! {
@@ -164,14 +161,18 @@ impl<'a, 'tcx> Visitor<'tcx> for UnsafeMapGetVisitor<'a, 'tcx> {
             then {
                 let receiver_ident_name = self.get_receiver_ident_name(receiver);
                 let first_arg_str = self.get_receiver_ident_name(&args[0]);
-                span_lint_and_sugg(
+                span_lint_and_help(
                     self.cx,
                     UNSAFE_MAP_GET,
                     expr.span,
                     LINT_MESSAGE,
-                    format!("Using `{}` on a Map is unsafe as it could panic, please use", path_segment.ident),
-                    format!("{}.try_get({}).unwrap_or_default()", receiver_ident_name, first_arg_str),
-                    Applicability::MaybeIncorrect,
+                    None,
+                    format!(
+                        "`{method}` panics when the key is absent; use `{recv}.get({key})` (returns `Option`) or `{recv}.try_get({key})` (returns `Result<Option, _>`) and handle the missing key",
+                        method = path_segment.ident,
+                        recv = receiver_ident_name,
+                        key = first_arg_str,
+                    ),
                 );
             }
         }

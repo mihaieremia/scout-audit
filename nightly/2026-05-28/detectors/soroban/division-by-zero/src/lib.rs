@@ -9,8 +9,11 @@
 //! local/value not shown to be non-zero. Compile-time constants and several
 //! syntactic guards suppress the finding: `if d == 0 { return/panic }`,
 //! `assert!(d != 0)`, `if d != 0 { .. } else { return/panic }`, and the positive
-//! branch of `if [.. &&] d != 0 { .. }`. Guards are tracked per-path, so they
-//! only protect the divisions they dominate.
+//! branch of `if [.. &&] d != 0 { .. }`. A divisor whose form is itself non-zero
+//! is also suppressed: `d.clamp(1, _)`, `d.max(1)`, `1 << k`, and a `<recv>.len()`
+//! (optionally cast) reached past a diverging emptiness guard
+//! (`if recv.is_empty() { return }` or `if recv.len() < N { return }`). Guards are
+//! tracked per-path, so they only protect the divisions they dominate.
 //!
 //! ## Why it matters
 //! Integer division or remainder by zero panics at runtime in Soroban, aborting
@@ -29,7 +32,7 @@ extern crate rustc_span;
 
 use std::collections::HashSet;
 
-use clippy_utils::diagnostics::span_lint_and_help;
+use clippy_utils::{diagnostics::span_lint_and_help, eq_expr_value};
 use common::{
     analysis::ConstantAnalyzer,
     declarations::{Severity, VulnerabilityClass},
@@ -39,7 +42,7 @@ use if_chain::if_chain;
 use rustc_hir::{
     def::Res,
     intravisit::{walk_expr, FnKind, Visitor},
-    BinOpKind, Block, Body, Expr, ExprKind, FnDecl, HirId, Path, QPath, StmtKind, UnOp,
+    BinOpKind, Block, Body, Expr, ExprKind, FnDecl, HirId, PatKind, Path, QPath, StmtKind, UnOp,
 };
 use rustc_lint::{LateContext, LateLintPass};
 use rustc_span::{def_id::LocalDefId, Span};
@@ -94,15 +97,106 @@ fn local_compared_to_zero(lhs: &Expr<'_>, rhs: &Expr<'_>) -> Option<HirId> {
 }
 
 fn is_zero_literal(expr: &Expr<'_>) -> bool {
+    matches!(int_literal(expr), Some(0))
+}
+
+/// If `expr` is an integer literal, returns its value.
+fn int_literal(expr: &Expr<'_>) -> Option<u128> {
     if_chain! {
         if let ExprKind::Lit(lit) = &expr.kind;
         if let rustc_ast::LitKind::Int(value, _) = lit.node;
         then {
-            value.get() == 0
+            Some(value.get())
         } else {
-            false
+            None
         }
     }
+}
+
+/// Removes a surrounding integer `as` cast if present (e.g. `<inner> as i128`),
+/// so a divisor written as `x.len() as i128` is matched on its `x.len()` core.
+fn peel_int_cast<'a, 'tcx>(expr: &'a Expr<'tcx>) -> &'a Expr<'tcx> {
+    if let ExprKind::Cast(inner, _) = &expr.kind {
+        inner
+    } else {
+        expr
+    }
+}
+
+/// If `expr` is a `<recv>.len()` method call (no args), returns the receiver.
+fn len_call_receiver<'a, 'tcx>(expr: &'a Expr<'tcx>) -> Option<&'a Expr<'tcx>> {
+    if_chain! {
+        if let ExprKind::MethodCall(segment, recv, args, _) = &expr.kind;
+        if segment.ident.as_str() == "len";
+        if args.is_empty();
+        then {
+            Some(recv)
+        } else {
+            None
+        }
+    }
+}
+
+/// Returns `true` if `expr` is provably `>= 1` from its own form, independent of
+/// any guard. Recognized non-zero-producing shapes:
+/// * `<expr>.clamp(lo, _)` where `lo` is an integer literal `>= 1`,
+/// * `<expr>.max(k)` where `k` is an integer literal `>= 1`,
+/// * `<nonzero literal> << <k>` (a left shift of a non-zero literal).
+///
+/// Conservative on purpose: only forms whose result cannot be zero are matched.
+fn expr_is_nonzero_value(expr: &Expr<'_>) -> bool {
+    if let ExprKind::MethodCall(segment, _, args, _) = &expr.kind {
+        match segment.ident.as_str() {
+            // `recv.clamp(lo, hi)`: the result is at least `lo`.
+            "clamp" => {
+                if let Some(lo) = args.first() {
+                    return matches!(int_literal(lo), Some(v) if v >= 1);
+                }
+            }
+            // `recv.max(k)`: the result is at least `k`.
+            "max" => {
+                if let Some(k) = args.first() {
+                    return matches!(int_literal(k), Some(v) if v >= 1);
+                }
+            }
+            _ => {}
+        }
+    }
+    // `<nonzero literal> << <k>` keeps the high bit set, so it is never zero.
+    if let ExprKind::Binary(op, lhs, _) = &expr.kind {
+        if matches!(op.node, BinOpKind::Shl) {
+            return matches!(int_literal(lhs), Some(v) if v >= 1);
+        }
+    }
+    false
+}
+
+/// If `cond` proves a collection non-empty when it holds (`<recv>.is_empty()` or
+/// `<recv>.len() < <nonzero literal>`), returns the collection receiver. Used to
+/// recognize a diverging emptiness guard: reaching past `if <cond> { return }`
+/// means the collection has at least one element, so `<recv>.len()` is non-zero.
+fn nonempty_guard_receiver<'a, 'tcx>(cond: &'a Expr<'tcx>) -> Option<&'a Expr<'tcx>> {
+    let cond = peel_drop_temps(cond);
+    // `<recv>.is_empty()`
+    if_chain! {
+        if let ExprKind::MethodCall(segment, recv, args, _) = &cond.kind;
+        if segment.ident.as_str() == "is_empty";
+        if args.is_empty();
+        then {
+            return Some(recv);
+        }
+    }
+    // `<recv>.len() < <nonzero literal>` (e.g. `len() < 1` or `len() < N`).
+    if_chain! {
+        if let ExprKind::Binary(op, lhs, rhs) = &cond.kind;
+        if matches!(op.node, BinOpKind::Lt | BinOpKind::Le);
+        if let Some(recv) = len_call_receiver(lhs);
+        if matches!(int_literal(rhs), Some(v) if v >= 1);
+        then {
+            return Some(recv);
+        }
+    }
+    None
 }
 
 /// Returns `true` if evaluating `expr` always diverges (never falls through to
@@ -274,6 +368,34 @@ fn diverging_zero_guard<'tcx>(cx: &LateContext<'tcx>, expr: &Expr<'tcx>) -> Opti
     None
 }
 
+/// Recognizes an `if` whose emptiness check on a collection, combined with a
+/// diverging branch, proves the collection non-empty on the *fall-through* path,
+/// and returns that collection receiver.
+///
+/// Covered shapes:
+/// * `if <recv>.is_empty() { return/panic }`: the empty branch diverges, so
+///   reaching past it means `<recv>` has at least one element.
+/// * `if <recv>.len() < <nonzero literal> { return/panic }`: same conclusion.
+///
+/// The receiver may be any side-effect-free collection expression (`history`,
+/// `self.items`, ...), matched structurally against a later `<recv>.len()`
+/// divisor, so the `.len()` cannot be zero on this path.
+fn diverging_nonempty_guard<'a, 'tcx>(
+    cx: &LateContext<'tcx>,
+    expr: &'a Expr<'tcx>,
+) -> Option<&'a Expr<'tcx>> {
+    if_chain! {
+        if let ExprKind::If(cond, then, _) = &expr.kind;
+        if let Some(recv) = nonempty_guard_receiver(peel_drop_temps(cond));
+        if branch_diverges(cx, then);
+        then {
+            Some(recv)
+        } else {
+            None
+        }
+    }
+}
+
 /// Walks a function body and flags integer `/` and `%` whose divisor is not
 /// proven non-zero on the current path.
 ///
@@ -285,10 +407,14 @@ fn diverging_zero_guard<'tcx>(cx: &LateContext<'tcx>, expr: &Expr<'tcx>) -> Opti
 ///   lowers to a `match`), `||` conditions, loops, reassignment, or guards that
 ///   live in a different function. Such cases simply fall back to flagging,
 ///   which is safe but may over-report.
-/// * Non-literal arithmetic that is nonetheless always non-zero (e.g.
-///   `d.max(1)`, `1 << k`) is not recognized as safe and may be flagged. Only
-///   compile-time constants (via `ConstantAnalyzer`) and explicit guards
-///   suppress a finding.
+/// * A divisor whose own form guarantees `>= 1` is recognized without a guard:
+///   `d.clamp(1, _)`, `d.max(1)`, and `1 << k` (also when bound through a `let`).
+///   A `<recv>.len()` divisor (optionally cast, e.g. `recv.len() as i128`) is
+///   recognized as non-zero when a dominating diverging guard proved `recv`
+///   non-empty (`if recv.is_empty() { .. }` / `if recv.len() < N { .. }`),
+///   matched structurally on the receiver. Other always-non-zero arithmetic is
+///   still conservatively flagged; only constants, explicit guards, and the
+///   forms above suppress a finding.
 struct DivisionByZeroVisitor<'a, 'tcx> {
     cx: &'a LateContext<'tcx>,
     constant_analyzer: ConstantAnalyzer<'a, 'tcx>,
@@ -299,6 +425,13 @@ struct DivisionByZeroVisitor<'a, 'tcx> {
     /// scan, which also silenced divisions that precede or sit outside the
     /// guard).
     guarded: HashSet<HirId>,
+    /// Collection receivers proven non-empty on the current control-flow path by
+    /// a dominating diverging emptiness guard (`if c.is_empty() { return }` or
+    /// `if c.len() < N { return }`). A divisor of the form `c.len()` (optionally
+    /// cast) is then safe. Kept as receiver expressions rather than `HirId`s
+    /// because the guarded value is a projection, not a bare local. Scoped like
+    /// `guarded`: it grows as guards are seen and is restored on block exit.
+    nonempty: Vec<&'tcx Expr<'tcx>>,
     findings: Vec<Span>,
 }
 
@@ -314,6 +447,26 @@ impl<'tcx> DivisionByZeroVisitor<'_, 'tcx> {
         // would have been caught above), so it is safe.
         if self.constant_analyzer.is_constant(divisor) {
             return false;
+        }
+
+        // A divisor whose own form guarantees `>= 1` (e.g. `x.clamp(1, _)`,
+        // `x.max(1)`, `1 << k`) is safe regardless of any guard.
+        if expr_is_nonzero_value(divisor) {
+            return false;
+        }
+
+        // A `<recv>.len()` divisor (optionally cast, e.g. `c.len() as i128`) is
+        // safe when a dominating guard proved `recv` non-empty on this path.
+        let core = peel_int_cast(divisor);
+        if let Some(recv) = len_call_receiver(core) {
+            let ctxt = divisor.span.ctxt();
+            if self
+                .nonempty
+                .iter()
+                .any(|guarded_recv| eq_expr_value(self.cx, ctxt, guarded_recv, recv))
+            {
+                return false;
+            }
         }
 
         // A divisor backed by a local proven non-zero on this path is safe.
@@ -332,6 +485,7 @@ impl<'tcx> DivisionByZeroVisitor<'_, 'tcx> {
         // Guards introduced inside this block must not leak to sibling blocks,
         // so remember what was already active and restore it on exit.
         let entry_guards: Vec<HirId> = self.guarded.iter().copied().collect();
+        let entry_nonempty = self.nonempty.len();
 
         for stmt in block.stmts {
             match &stmt.kind {
@@ -346,11 +500,27 @@ impl<'tcx> DivisionByZeroVisitor<'_, 'tcx> {
                         self.guarded.insert(local);
                         continue;
                     }
+                    // `if <recv>.is_empty() { return }` / `if <recv>.len() < N
+                    // { return }` proves `recv` non-empty on every following
+                    // statement, so a later `recv.len()` divisor cannot be zero.
+                    if let Some(recv) = diverging_nonempty_guard(self.cx, expr) {
+                        self.visit_expr(expr);
+                        self.nonempty.push(recv);
+                        continue;
+                    }
                     self.visit_expr(expr);
                 }
                 StmtKind::Let(let_stmt) => {
                     if let Some(init) = let_stmt.init {
                         self.visit_expr(init);
+                        // `let d = <expr>.clamp(1, _)` / `.max(1)` / `1 << k`
+                        // binds a value proven `>= 1`, so divisions by `d`
+                        // later in this block are safe.
+                        if expr_is_nonzero_value(init) {
+                            if let PatKind::Binding(_, hir_id, _, None) = let_stmt.pat.kind {
+                                self.guarded.insert(hir_id);
+                            }
+                        }
                     }
                     if let Some(els) = let_stmt.els {
                         self.walk_guarded_block(els);
@@ -365,6 +535,7 @@ impl<'tcx> DivisionByZeroVisitor<'_, 'tcx> {
         }
 
         self.guarded.retain(|id| entry_guards.contains(id));
+        self.nonempty.truncate(entry_nonempty);
     }
 }
 
@@ -430,6 +601,7 @@ impl<'tcx> LateLintPass<'tcx> for DivisionByZero {
             cx,
             constant_analyzer,
             guarded: HashSet::new(),
+            nonempty: Vec::new(),
             findings: Vec::new(),
         };
         visitor.visit_body(body);

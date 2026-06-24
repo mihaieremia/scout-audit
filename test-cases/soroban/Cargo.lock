@@ -735,6 +735,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "division-by-zero-clean-2"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
 name = "division-by-zero-remediated-1"
 version = "0.1.0"
 dependencies = [
@@ -1087,6 +1094,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "front-running-clean-2"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
 name = "front-running-remediated-1"
 version = "0.1.0"
 dependencies = [
@@ -1295,6 +1309,13 @@ dependencies = [
 
 [[package]]
 name = "ineffective-extend-ttl-vulnerable-2"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
+name = "instance-storage-per-user-key-clean-1"
 version = "0.1.0"
 dependencies = [
  "soroban-sdk",
@@ -2294,6 +2315,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "storage-change-events-clean-2"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
 name = "storage-change-events-remediated-1"
 version = "0.1.0"
 dependencies = [
@@ -2766,6 +2794,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "unsafe-lossy-cast-clean-2"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
 name = "unsafe-lossy-cast-remediated-1"
 version = "0.1.0"
 dependencies = [
@@ -2781,6 +2816,13 @@ dependencies = [
 
 [[package]]
 name = "unsafe-map-get-clean-1"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
+name = "unsafe-map-get-clean-2"
 version = "0.1.0"
 dependencies = [
  "soroban-sdk",
@@ -2941,6 +2983,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "unvalidated-cross-contract-target-clean-1"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
 name = "unvalidated-cross-contract-target-remediated-1"
 version = "0.1.0"
 dependencies = [
@@ -2949,6 +2998,13 @@ dependencies = [
 
 [[package]]
 name = "unvalidated-cross-contract-target-vulnerable-1"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
+name = "unvalidated-cross-contract-target-vulnerable-2"
 version = "0.1.0"
 dependencies = [
  "soroban-sdk",

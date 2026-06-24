@@ -11,7 +11,7 @@ This is the **XOXNO fork** of CoinFabrik's [`scout-audit`](https://github.com/Co
 Relative to upstream it is **Soroban-only**, modernized to a current toolchain
 (`nightly-2026-05-28` / rustc 1.98, Dylint 6, `clippy_utils` 0.1.98, `soroban-sdk` 27),
 tuned to drastically reduce false positives on real lending-protocol code, and extended
-with new detectors. The full delta is in **[`changelog.md`](changelog.md)**.
+with new detectors. The full delta is in **[`CHANGELOG.md`](CHANGELOG.md)**.
 
 > Upstream targets ink!, Soroban and Substrate. This fork drops ink! and Substrate and
 > focuses entirely on Soroban so it can keep pace with the latest Stellar protocol and run

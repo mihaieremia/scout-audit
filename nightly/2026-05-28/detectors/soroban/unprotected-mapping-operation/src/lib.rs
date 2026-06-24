@@ -1,4 +1,25 @@
 #![feature(rustc_private)]
+//! # unprotected-mapping-operation
+//!
+//! Flags writes to a Soroban `Map` keyed by `Address` that are reachable from a
+//! contract entry point without any authorization check.
+//!
+//! ## What it detects
+//! A `Map<Address, _>::set(..)` call inside a contract function (or reachable
+//! through the call graph from one) where no `addr.require_auth()` and no
+//! OpenZeppelin `#[only_owner]`/`#[only_admin]` enforcer
+//! (`enforce_owner_auth`/`enforce_admin_auth`) gates the write.
+//!
+//! ## Why it matters
+//! Without an auth check, any caller can overwrite a mapping entry under an
+//! arbitrary key (e.g. another user's balance or role), corrupting per-address
+//! state and enabling theft or privilege escalation.
+//!
+//! ## Remediation
+//! Require authorization of the relevant `Address` (`addr.require_auth()`) before
+//! mutating the mapping, or gate the function with an access-control macro.
+//!
+//! Severity: Critical · Class: Authorization.
 
 extern crate rustc_hir;
 extern crate rustc_middle;

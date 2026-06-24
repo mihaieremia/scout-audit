@@ -1,5 +1,28 @@
 #![feature(rustc_private)]
 
+//! # token-interface-events
+//!
+//! Detects Token Interface functions that mutate balances but never emit an
+//! event anywhere in their call flow.
+//!
+//! ## What it detects
+//! In a contract that implements `soroban_sdk::token::TokenInterface`, a
+//! canonical event-emitting function (`transfer`, `transfer_from`, `approve`,
+//! `mint`, `burn`, `burn_from`) where neither the function nor anything it calls
+//! (directly or transitively) invokes `.events()`.
+//!
+//! ## Why it matters
+//! The token standard requires these operations to publish events. Omitting them
+//! breaks SEP-41 compatibility and leaves observers (wallets, indexers,
+//! integrators) unable to track balance changes, causing interoperability
+//! problems.
+//!
+//! ## Remediation
+//! Emit the standard event for each balance-changing operation via the contract's
+//! `events()` interface.
+//!
+//! Severity: Medium · Class: BestPractices.
+
 extern crate rustc_hir;
 extern crate rustc_span;
 

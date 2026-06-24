@@ -1,5 +1,26 @@
 #![feature(rustc_private)]
 
+//! # known-vulnerabilities
+//!
+//! An early lint that audits the project's dependencies against the RustSec
+//! advisory database.
+//!
+//! ## What it detects
+//! On each crate, it loads the workspace `Cargo.lock`, fetches the RustSec
+//! advisory database, and reports every dependency whose locked version matches
+//! a published vulnerability advisory.
+//!
+//! ## Why it matters
+//! Depending on a crate version with a known advisory exposes the contract to
+//! the disclosed security risk. Surfacing these during analysis lets authors
+//! upgrade or remove the affected dependency before deployment.
+//!
+//! ## Remediation
+//! Update the flagged dependency to a patched version, or remove it if it is
+//! not required.
+//!
+//! Severity: Medium · Class: KnownBugs.
+
 extern crate rustc_ast;
 extern crate rustc_span;
 

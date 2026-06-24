@@ -1,4 +1,25 @@
 #![feature(rustc_private)]
+//! # unsafe-map-get
+//!
+//! Flags panic-prone reads on a Soroban `Map` whose returned value is not handled
+//! safely.
+//!
+//! ## What it detects
+//! A `get`, `get_unchecked`, or `try_get_unchecked` call on a `soroban_sdk::Map`
+//! whose result is not consumed safely (e.g. via `unwrap_or`, `map`, `ok_or`,
+//! `match`, or `if let Some(..)`). `unwrap`/`expect` are intentionally not treated
+//! as safe and are covered by the unwrap/expect detectors.
+//!
+//! ## Why it matters
+//! These accessors panic (trap) when the key is absent, aborting the contract
+//! invocation and potentially making functionality unreachable or enabling a
+//! denial-of-service on a missing or attacker-chosen key.
+//!
+//! ## Remediation
+//! Use `map.try_get(key).unwrap_or_default()` (or otherwise handle the missing
+//! key) instead of a panicking accessor.
+//!
+//! Severity: Medium · Class: Authorization.
 
 extern crate rustc_errors;
 extern crate rustc_hir;

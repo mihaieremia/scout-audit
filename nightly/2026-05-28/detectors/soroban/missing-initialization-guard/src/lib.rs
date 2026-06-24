@@ -1,5 +1,31 @@
 #![feature(rustc_private)]
 
+//! # missing-initialization-guard
+//!
+//! Detects public `initialize`/`init` entry points that write privileged state
+//! without first checking whether the contract is already initialized.
+//!
+//! ## What it detects
+//! A public `initialize`/`init` Soroban function that writes a privileged
+//! storage key (name containing `admin`, `owner`, `governor`, `manager`, or
+//! `authority`) to instance/persistent storage, with no reachable guard: no
+//! `storage.has(&key)` check, no `is_initialized`-style check, and no
+//! OpenZeppelin `set_owner`/`set_admin` setter that panics if already set. The
+//! host-run `__constructor` is intentionally excluded since it cannot be
+//! re-invoked.
+//!
+//! ## Why it matters
+//! Without a guard, any caller can re-invoke the initializer after deployment,
+//! overwrite the stored admin/owner address, and seize control of the contract.
+//! This is a critical takeover vector.
+//!
+//! ## Remediation
+//! Guard the initializer: check `storage.has(&key)` (or an `is_initialized`
+//! helper) and abort if already set, or use a setter that panics when the
+//! privileged key already exists.
+//!
+//! Severity: Critical · Class: Authorization.
+
 extern crate rustc_hir;
 extern crate rustc_span;
 

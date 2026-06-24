@@ -1,4 +1,22 @@
 #![feature(rustc_private)]
+//! # avoid-core-mem-forget
+//!
+//! Flags calls to `core::mem::forget`, which skips a value's destructor.
+//!
+//! ## What it detects
+//! A direct call whose path is exactly `core::mem::forget(...)` (matched on the
+//! three path segments `core`, `mem`, `forget`), outside of test items.
+//!
+//! ## Why it matters
+//! Forgetting a value suppresses its `Drop` implementation. In a Soroban
+//! contract this can leak resources or skip cleanup logic the destructor was
+//! relied upon to perform, producing memory leaks and subtle logic errors.
+//!
+//! ## Remediation
+//! Drop the value the normal way: bind it with `let _ = ...` or call `.drop()`
+//! so the destructor still runs.
+//!
+//! Severity: Enhancement · Class: BestPractices.
 
 extern crate rustc_ast;
 extern crate rustc_span;

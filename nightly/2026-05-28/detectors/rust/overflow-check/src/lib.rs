@@ -1,5 +1,26 @@
 #![feature(rustc_private)]
 
+//! # overflow-check
+//!
+//! An early lint that verifies the release profile enables arithmetic overflow
+//! checks.
+//!
+//! ## What it detects
+//! It locates the workspace `Cargo.toml` and reports unless
+//! `profile.release.overflow-checks` is explicitly set to `true`.
+//!
+//! ## Why it matters
+//! By default Rust disables overflow checks in release builds, so an
+//! overflow/underflow wraps silently instead of panicking. Soroban contracts
+//! ship the release profile, so an unchecked overflow can produce an inexact
+//! result and lead to serious accounting bugs.
+//!
+//! ## Remediation
+//! Add `overflow-checks = true` to the `[profile.release]` section of
+//! `Cargo.toml`.
+//!
+//! Severity: Critical · Class: Arithmetic.
+
 extern crate rustc_ast;
 extern crate rustc_span;
 

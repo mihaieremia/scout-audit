@@ -1,5 +1,30 @@
 #![feature(rustc_private)]
 
+//! # missing-new-admin-auth
+//!
+//! Detects admin/owner transfer functions that store an incoming privileged
+//! address without first requiring that address to authorize.
+//!
+//! ## What it detects
+//! A storage write `storage.set(&Key::Admin, new_admin)` where `new_admin` is a
+//! privileged-named `Address` parameter, with no `require_auth` on that incoming
+//! address reachable in the flow. It uses a MIR-based interprocedural data-flow
+//! analysis (a fixpoint over per-function summaries) so authorization delegated
+//! to a helper function or method is still recognized. `initialize` functions
+//! are excluded.
+//!
+//! ## Why it matters
+//! If the new admin/owner does not have to sign, a mistyped or attacker-supplied
+//! address can be installed, permanently bricking the contract or handing control
+//! to the wrong party. Requiring the incoming address to authorize proves it is
+//! controllable.
+//!
+//! ## Remediation
+//! Call `require_auth` on the new admin/owner address before writing it to
+//! storage, so the incoming address must sign off on the transfer.
+//!
+//! Severity: Medium · Class: Authorization.
+
 extern crate rustc_hir;
 extern crate rustc_index;
 extern crate rustc_middle;

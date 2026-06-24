@@ -1,5 +1,26 @@
 #![feature(rustc_private)]
 
+//! # debug-assert-in-contract
+//!
+//! A pre-expansion early lint that flags `debug_assert!`-family macros in
+//! contract code (outside of tests).
+//!
+//! ## What it detects
+//! Calls to `debug_assert!`, `debug_assert_eq!`, or `debug_assert_ne!` anywhere
+//! that is not inside a `#[test]` / `#[cfg(test)]` item.
+//!
+//! ## Why it matters
+//! Soroban contracts are compiled with `debug-assertions = false` and
+//! `panic = "abort"`, so `debug_assert!` macros lower to dead code and are
+//! stripped from the on-chain Wasm. A security check written as a debug
+//! assertion therefore never runs in production.
+//!
+//! ## Remediation
+//! Use `assert!`, `panic_with_error!`, or `return Err(..)` for on-chain
+//! invariants that must be enforced in the release build.
+//!
+//! Severity: Medium · Class: ErrorHandling.
+
 extern crate rustc_ast;
 extern crate rustc_span;
 

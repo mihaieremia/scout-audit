@@ -1,6 +1,25 @@
 #![feature(rustc_private)]
 #![allow(clippy::enum_variant_names)]
 
+//! # empty-expect
+//!
+//! A late lint that flags `.expect("")` calls whose message is an empty string.
+//!
+//! ## What it detects
+//! A method call named `expect` whose first argument is an empty string
+//! literal. Expressions originating from proc macros are ignored.
+//!
+//! ## Why it matters
+//! When an `expect` panics, its message is the only diagnostic surfaced. An
+//! empty message provides no context about which invariant failed, making
+//! failures in contract code much harder to triage.
+//!
+//! ## Remediation
+//! Provide a descriptive panic message, or handle the `Option`/`Result`
+//! explicitly instead of expecting.
+//!
+//! Severity: Medium · Class: BestPractices.
+
 extern crate rustc_ast;
 extern crate rustc_hir;
 extern crate rustc_span;

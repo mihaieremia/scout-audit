@@ -1,6 +1,27 @@
 #![feature(rustc_private)]
 #![allow(clippy::enum_variant_names)]
 
+//! # unsafe-expect
+//!
+//! A late lint that flags `.expect()` calls that can panic, after ruling out
+//! provably-safe receivers.
+//!
+//! ## What it detects
+//! In non-macro functions that return `Result` or `Option`, it runs a
+//! `ConstantAnalyzer` to identify values known to be safe, then reports
+//! remaining `expect` calls via the shared `UnsafeChecks` visitor.
+//!
+//! ## Why it matters
+//! `expect` retrieves the inner value of a `Result`/`Option` and panics on the
+//! error/`None` case. An unchecked `expect` on attacker- or state-controlled
+//! data lets callers force the contract to panic instead of returning an error.
+//!
+//! ## Remediation
+//! Handle the `Option`/`Result` explicitly with pattern matching or the `?`
+//! operator and return a proper error instead of expecting.
+//!
+//! Severity: Medium · Class: ErrorHandling.
+
 extern crate rustc_hir;
 extern crate rustc_span;
 

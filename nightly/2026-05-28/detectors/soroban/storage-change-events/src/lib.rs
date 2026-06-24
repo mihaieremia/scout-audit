@@ -1,5 +1,27 @@
 #![feature(rustc_private)]
 
+//! # storage-change-events
+//!
+//! Detects Soroban contract entry points that modify storage without emitting an
+//! event anywhere in their call flow.
+//!
+//! ## What it detects
+//! A public Soroban function that, directly or transitively through the call
+//! graph, calls a storage mutator (`set`, `update`, `remove`, `try_update` on
+//! `Instance`/`Persistent`/`Temporary` storage) but never calls `.events()` in
+//! that same flow.
+//!
+//! ## Why it matters
+//! Without events, off-chain observers and clients cannot reliably track state
+//! changes. Emitting events on storage mutation keeps the contract transparent
+//! and observable, which is expected of well-behaved contracts.
+//!
+//! ## Remediation
+//! Emit an event via the contract's `events()` interface whenever storage is
+//! modified.
+//!
+//! Severity: Enhancement · Class: BestPractices.
+
 extern crate rustc_hir;
 extern crate rustc_span;
 

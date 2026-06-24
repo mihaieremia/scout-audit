@@ -1,4 +1,24 @@
 #![feature(rustc_private)]
+//! # integer-overflow-or-underflow
+//!
+//! Flags unchecked integer arithmetic that can overflow or underflow.
+//!
+//! ## What it detects
+//! Integer `+`, `-`, `*` (and their assignment forms), `pow`, and unary negation
+//! on signed integers, when the operands are not all compile-time constants.
+//! Findings are suppressed entirely when the governing workspace's release
+//! profile sets `overflow-checks = true`, since overflow then traps at runtime.
+//!
+//! ## Why it matters
+//! In release builds without overflow checks, an overflow or underflow wraps
+//! silently and produces an inexact result. In a Soroban contract this can
+//! corrupt balances, accounting, or supply, with no error raised.
+//!
+//! ## Remediation
+//! Use checked, saturating, or wrapping arithmetic (e.g. `checked_add`) and
+//! handle the out-of-range case, or enable `overflow-checks` so overflow reverts.
+//!
+//! Severity: Critical · Class: Arithmetic.
 
 extern crate rustc_hir;
 extern crate rustc_span;

@@ -1,5 +1,29 @@
 #![feature(rustc_private)]
 
+//! # unnecessary-admin-parameter
+//!
+//! Detects Soroban entry points that take an admin `Address` as a parameter
+//! instead of reading the admin from storage.
+//!
+//! ## What it detects
+//! A public Soroban function (other than `initialize`) with a parameter named
+//! like `admin` (edit distance <= 1) of Soroban `Address` type, where the
+//! parameter is not used as access control through a reachable `require_auth`.
+//! Parameters forwarded to a helper that does perform `require_auth` (recognized
+//! via the call graph) are not flagged.
+//!
+//! ## Why it matters
+//! Accepting the admin as a caller-supplied argument lets the caller pass any
+//! address, which either bypasses access control entirely or invites confusion
+//! about who the real admin is. The trusted admin should come from contract
+//! storage, not from the caller.
+//!
+//! ## Remediation
+//! Retrieve the admin from storage and call `require_auth` on it, removing the
+//! caller-supplied admin parameter.
+//!
+//! Severity: Medium · Class: Authorization.
+
 extern crate rustc_hir;
 extern crate rustc_span;
 

@@ -1,4 +1,25 @@
 #![feature(rustc_private)]
+//! # unprotected-update-current-contract-wasm
+//!
+//! Flags a contract upgrade (`env.deployer().update_current_contract_wasm(..)`)
+//! reachable from an entry point without any authorization check.
+//!
+//! ## What it detects
+//! An `env.deployer().update_current_contract_wasm(..)` call in a function (or
+//! reachable through the call graph) where no `addr.require_auth()` and no
+//! OpenZeppelin `#[only_owner]`/`#[only_admin]` enforcer
+//! (`enforce_owner_auth`/`enforce_admin_auth`) gates the upgrade.
+//!
+//! ## Why it matters
+//! If any caller can swap the contract's Wasm, they can replace its logic
+//! entirely, draining all funds and data controlled by this contract and any
+//! dependents.
+//!
+//! ## Remediation
+//! Restrict the upgrade to an admin/authorized address via `require_auth`, or
+//! gate the function with an access-control macro.
+//!
+//! Severity: Critical · Class: Authorization.
 
 extern crate rustc_hir;
 extern crate rustc_middle;

@@ -1,4 +1,25 @@
 #![feature(rustc_private)]
+//! # unsafe-lossy-cast
+//!
+//! Flags integer `as` casts that can silently truncate a value or change its
+//! sign.
+//!
+//! ## What it detects
+//! A non-constant integer-to-integer `as` cast that narrows the bit width
+//! (e.g. `i64 as i32`) or crosses signedness in a value-changing way
+//! (e.g. `i32 as u32`, `u64 as i32`). Casts of compiler-evaluable constants are
+//! skipped to avoid noise.
+//!
+//! ## Why it matters
+//! Silent truncation or sign reinterpretation produces incorrect numeric results
+//! that are easy to miss and can corrupt balances, indices, or accounting in a
+//! contract.
+//!
+//! ## Remediation
+//! Use `TryFrom`/`TryInto` and handle the conversion error explicitly instead of
+//! an `as` cast.
+//!
+//! Severity: Medium · Class: Arithmetic.
 
 extern crate rustc_hir;
 extern crate rustc_middle;

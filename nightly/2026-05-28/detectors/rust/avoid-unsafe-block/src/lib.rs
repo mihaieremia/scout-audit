@@ -1,5 +1,23 @@
 #![feature(rustc_private)]
 
+//! # avoid-unsafe-block
+//!
+//! A pre-expansion early lint that flags user-written `unsafe` blocks.
+//!
+//! ## What it detects
+//! Block expressions whose check mode is `unsafe` and whose source is
+//! user-provided (i.e. an explicit `unsafe { .. }`, not compiler-generated).
+//!
+//! ## Why it matters
+//! `unsafe` blocks bypass Rust's safety guarantees and can introduce undefined
+//! behavior, memory corruption, and security vulnerabilities. Contract code
+//! rarely needs them and should not weaken its safety baseline.
+//!
+//! ## Remediation
+//! Remove the `unsafe` block and use safe alternatives instead.
+//!
+//! Severity: Enhancement · Class: BestPractices.
+
 extern crate rustc_ast;
 
 use clippy_utils::diagnostics::span_lint_and_help;

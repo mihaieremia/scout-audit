@@ -1,4 +1,24 @@
 #![feature(rustc_private)]
+//! # avoid-vec-map-input
+//!
+//! Flags Soroban contract functions that accept a `soroban_sdk::Vec` or
+//! `Map<K, V>` parameter.
+//!
+//! ## What it detects
+//! Any parameter of a `#[contractimpl]` (Soroban) function whose type resolves
+//! to a Soroban `Vec` or `Map`. Detection runs at `check_crate_post` so only
+//! parameters on functions confirmed to be Soroban entry points are reported.
+//!
+//! ## Why it matters
+//! Soroban `Vec`/`Map` parameters arrive as raw `Val` values. Their elements are
+//! not validated on entry, so a malformed or unexpected element can cause a bad
+//! conversion that panics and halts contract execution mid-transaction.
+//!
+//! ## Remediation
+//! Validate or normalize every element, or convert the collection into
+//! contract-defined types, before storing or otherwise relying on its contents.
+//!
+//! Severity: Enhancement · Class: BestPractices.
 
 extern crate rustc_hir;
 extern crate rustc_span;

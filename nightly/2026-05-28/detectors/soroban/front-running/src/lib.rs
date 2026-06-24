@@ -1,4 +1,26 @@
 #![feature(rustc_private)]
+//! # front-running
+//!
+//! Flags token transfers whose amount is not bounded by a caller-supplied
+//! minimum, leaving the transfer exposed to front-running.
+//!
+//! ## What it detects
+//! A `transfer` call on a `soroban_sdk::token::TokenClient` where the amount is a
+//! local variable that (1) is derived from a function parameter but (2) is never
+//! compared against a parameter in a guarding `if` (e.g. `amount >= min` or
+//! `if amount < min { panic/return }`). Such comparisons mark the amount checked
+//! and suppress the finding.
+//!
+//! ## Why it matters
+//! Without a minimum-amount check, the realized transfer amount can be
+//! manipulated by transaction ordering (MEV): an observer can sandwich or
+//! front-run the transaction so the user receives less than intended.
+//!
+//! ## Remediation
+//! Validate the transferred amount against a caller-supplied minimum before the
+//! transfer, reverting when it is not met (slippage protection).
+//!
+//! Severity: Medium · Class: MEV.
 
 extern crate rustc_hir;
 extern crate rustc_span;

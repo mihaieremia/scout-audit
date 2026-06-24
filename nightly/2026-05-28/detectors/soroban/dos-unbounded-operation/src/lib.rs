@@ -1,5 +1,26 @@
 #![feature(rustc_private)]
 #![recursion_limit = "256"]
+//! # dos-unbounded-operation
+//!
+//! Flags `for` loops whose iteration count is not bounded by a constant.
+//!
+//! ## What it detects
+//! A `for` loop ranging over `start..end` (or an inclusive range) where either
+//! the start or the end is not a compile-time constant. Literals, named
+//! constants, locals initialized from constants, and `.len()` on a Soroban
+//! `Vec`/`Map` (whose size is bounded) all count as constant bounds; anything
+//! else (e.g. a caller-supplied length) is treated as unbounded.
+//!
+//! ## Why it matters
+//! A single transaction that iterates an attacker-controlled number of times can
+//! consume all the gas in a block, a denial-of-service vector that can also make
+//! the contract permanently uncallable for a given input size.
+//!
+//! ## Remediation
+//! Bound loop ranges with a constant or a Soroban collection's length, and cap
+//! or paginate work driven by user-supplied sizes.
+//!
+//! Severity: Medium · Class: DoS.
 
 extern crate rustc_hir;
 extern crate rustc_span;

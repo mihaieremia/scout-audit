@@ -1,5 +1,26 @@
 #![feature(rustc_private)]
 
+//! # soroban-version
+//!
+//! Checks the project's `soroban-sdk` dependency against the latest stable
+//! release published on crates.io and warns when they differ.
+//!
+//! ## What it detects
+//! At crate check time it fetches `max_stable_version` for `soroban-sdk` from
+//! crates.io, reads the project's required `soroban-sdk` version from cargo
+//! metadata, and reports when the project version is not equal to the latest
+//! stable version.
+//!
+//! ## Why it matters
+//! Older `soroban-sdk` releases may carry known bugs or security issues that are
+//! fixed upstream. Staying off the latest stable version leaves a contract
+//! exposed to defects that have already been resolved.
+//!
+//! ## Remediation
+//! Update the `soroban-sdk` dependency to the latest stable version.
+//!
+//! Severity: Enhancement · Class: BestPractices.
+
 extern crate rustc_ast;
 extern crate rustc_span;
 

@@ -1,6 +1,29 @@
 #![feature(rustc_private)]
 #![warn(unused_extern_crates)]
 
+//! # uncached-storage-modification
+//!
+//! Detects a value read from storage that is modified in memory and then
+//! re-read from storage without the modification being written back first.
+//!
+//! ## What it detects
+//! A local bound from `storage.get(&key)` that is later mutated (reassignment,
+//! `&mut` borrow, or a `&mut self` method call), followed by another
+//! `storage.get(&key)` for the same key with no intervening `storage.set(&key, ..)`
+//! write barrier. Branch states from `if`/`match` are merged so a modification in
+//! any branch is tracked.
+//!
+//! ## Why it matters
+//! Re-reading storage after an unsaved in-memory modification silently discards
+//! the change: the second read returns the stale persisted value, so the contract
+//! operates on inconsistent data and the intended update is lost.
+//!
+//! ## Remediation
+//! Write the modified value back with `storage.set(&key, ..)` before re-reading
+//! it, or keep using the in-memory value instead of re-fetching from storage.
+//!
+//! Severity: Medium · Class: BestPractices.
+
 extern crate rustc_hir;
 extern crate rustc_middle;
 extern crate rustc_span;

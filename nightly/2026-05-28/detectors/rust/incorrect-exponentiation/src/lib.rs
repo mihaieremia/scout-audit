@@ -1,5 +1,25 @@
 #![feature(rustc_private)]
 
+//! # incorrect-exponentiation
+//!
+//! A late lint that flags use of the `^` operator where exponentiation was
+//! likely intended.
+//!
+//! ## What it detects
+//! Binary `^` (`BitXor`) expressions and `^=` (`BitXorAssign`) assignments. In
+//! Rust `^` is bitwise XOR, not a power operator.
+//!
+//! ## Why it matters
+//! Developers coming from languages where `^` means "raise to a power" can
+//! write `base ^ exp` expecting exponentiation and instead get a XOR, silently
+//! producing wrong numeric results in arithmetic-sensitive contract logic.
+//!
+//! ## Remediation
+//! Use `.pow()` or `.checked_pow()` to raise a number; use `.bitxor()` (or keep
+//! `^`) only when bitwise XOR is genuinely intended.
+//!
+//! Severity: Critical · Class: Arithmetic.
+
 extern crate rustc_hir;
 extern crate rustc_span;
 

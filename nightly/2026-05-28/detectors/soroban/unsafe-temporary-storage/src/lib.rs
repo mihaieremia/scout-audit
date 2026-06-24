@@ -1,4 +1,25 @@
 #![feature(rustc_private)]
+//! # unsafe-temporary-storage
+//!
+//! Flags critical, long-lived contract state stored under Soroban temporary
+//! storage.
+//!
+//! ## What it detects
+//! A `set`/`get`/`has` call on temporary storage whose key is a `#[contracttype]`
+//! enum variant whose name looks critical (matches a lexicon such as `admin`,
+//! `owner`, `balance`, `supply`, `config`, `vault`, `nonce`, ...) and is not on
+//! the ephemeral allow-list (`pending`, `session`, `cache`, ...).
+//!
+//! ## Why it matters
+//! Temporary storage entries are auto-deleted when their TTL expires and cannot
+//! be restored after archival, so keeping critical state there risks
+//! irrecoverable loss of admin rights, balances, or configuration.
+//!
+//! ## Remediation
+//! Store critical, long-lived keys in persistent or instance storage; reserve
+//! temporary storage for genuinely ephemeral data.
+//!
+//! Severity: Medium · Class: ResourceManagement.
 
 extern crate rustc_hir;
 extern crate rustc_middle;

@@ -1,4 +1,27 @@
 #![feature(rustc_private)]
+//! # division-by-zero
+//!
+//! Flags integer `/` and `%` operations whose divisor is not proven non-zero on
+//! the current control-flow path.
+//!
+//! ## What it detects
+//! An integer division or remainder where the divisor is a literal `0`, or a
+//! local/value not shown to be non-zero. Compile-time constants and several
+//! syntactic guards suppress the finding: `if d == 0 { return/panic }`,
+//! `assert!(d != 0)`, `if d != 0 { .. } else { return/panic }`, and the positive
+//! branch of `if [.. &&] d != 0 { .. }`. Guards are tracked per-path, so they
+//! only protect the divisions they dominate.
+//!
+//! ## Why it matters
+//! Integer division or remainder by zero panics at runtime in Soroban, aborting
+//! the whole transaction. When the divisor derives from a parameter or computed
+//! value, an attacker can force the panic as a denial-of-service.
+//!
+//! ## Remediation
+//! Guard the divisor with an explicit non-zero check, or use `checked_div` /
+//! `checked_rem` and handle the `None` case.
+//!
+//! Severity: Medium · Class: Arithmetic.
 
 extern crate rustc_ast;
 extern crate rustc_hir;

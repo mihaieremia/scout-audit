@@ -1,5 +1,29 @@
 #![feature(rustc_private)]
 
+//! # divide-before-multiply
+//!
+//! A late lint that flags integer division performed before a multiplication,
+//! which loses precision compared to multiplying first.
+//!
+//! ## What it detects
+//! Two patterns: (1) a syntactic `a / b * c` where a division appears inside a
+//! multiplication expression in the HIR; and (2) a MIR data-flow check that
+//! taints values produced by `/`, `checked_div`, or `saturating_div` and
+//! reports when a tainted value flows into `*`, `checked_mul`, or
+//! `saturating_mul`.
+//!
+//! ## Why it matters
+//! Integer division truncates, so dividing before multiplying discards the
+//! remainder and yields a smaller, less precise result. In financial or
+//! token-accounting logic this rounding error can be exploited or cause fund
+//! loss.
+//!
+//! ## Remediation
+//! Reverse the order of operations: multiply first, then divide, so precision
+//! is preserved.
+//!
+//! Severity: Medium · Class: Arithmetic.
+
 extern crate rustc_hir;
 extern crate rustc_middle;
 extern crate rustc_span;

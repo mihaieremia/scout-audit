@@ -1,4 +1,24 @@
 #![feature(rustc_private)]
+//! # unprotected-token-admin-operation
+//!
+//! Flags privileged Stellar Asset Contract / token-admin operations reachable
+//! from a contract entry point without any authorization.
+//!
+//! ## What it detects
+//! A call to `mint`, `burn`, `clawback`, `set_authorized`, or `set_admin` on a
+//! token/SAC `Client` where no `require_auth`/`require_auth_for_args` is
+//! reachable and no OpenZeppelin `#[only_owner]`/`#[only_admin]` enforcer
+//! (`enforce_owner_auth`/`enforce_admin_auth`) guards the function.
+//!
+//! ## Why it matters
+//! An unprotected admin operation lets any caller mint tokens, claw back or burn
+//! balances, (de)authorize accounts, or seize admin rights over the asset.
+//!
+//! ## Remediation
+//! Require authorization of the privileged address before the operation, or gate
+//! the entry point with an access-control macro.
+//!
+//! Severity: Critical · Class: Authorization.
 
 extern crate rustc_hir;
 extern crate rustc_span;

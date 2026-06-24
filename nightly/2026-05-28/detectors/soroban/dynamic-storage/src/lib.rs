@@ -1,4 +1,25 @@
 #![feature(rustc_private)]
+//! # dynamic-storage
+//!
+//! Flags storing dynamically-sized values in Soroban instance or persistent
+//! storage.
+//!
+//! ## What it detects
+//! A `.set(...)` call whose receiver is Soroban instance or persistent storage
+//! and whose value argument is a dynamically-sized type: `str`, slices, trait
+//! objects, or ADTs named `Vec`, `String`, `Map`, or `LinkedList` (also matched
+//! through arrays, references, raw pointers, and tuples).
+//!
+//! ## Why it matters
+//! Dynamic types stored in instance or persistent storage can grow without
+//! bound, inflating the entry and its rent/TTL costs and opening storage-related
+//! vulnerabilities as the data expands over the contract's lifetime.
+//!
+//! ## Remediation
+//! Store bounded, fixed-size representations, or split large dynamic data across
+//! keyed entries with explicit size limits, instead of a single growing value.
+//!
+//! Severity: Enhancement · Class: ResourceManagement.
 
 extern crate rustc_hir;
 extern crate rustc_middle;

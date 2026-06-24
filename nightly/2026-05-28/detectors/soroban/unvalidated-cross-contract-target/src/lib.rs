@@ -1,4 +1,26 @@
 #![feature(rustc_private)]
+//! # unvalidated-cross-contract-target
+//!
+//! Flags cross-contract calls whose target contract is an unvalidated `Address`
+//! taken directly from a function parameter.
+//!
+//! ## What it detects
+//! A method invoked on a `SomeClient` built (via `Client::new(&env, &addr)`) from
+//! an untrusted address parameter, where that parameter is never guarded: no
+//! allowlist membership check (`allowed.contains(&addr)`), no equality against a
+//! storage-read value, and no reachable `addr.require_auth()`. Constructor
+//! (`__constructor`) targets are exempt.
+//!
+//! ## Why it matters
+//! Calling into an attacker-chosen contract (a malicious token, oracle, or pool)
+//! enables fund theft, price manipulation, and reentrancy.
+//!
+//! ## Remediation
+//! Validate the target address before calling into it: check it against an
+//! on-chain allowlist, compare it to a value read from storage, or require it to
+//! authorize the call via `require_auth`.
+//!
+//! Severity: Critical · Class: Authorization.
 
 extern crate rustc_hir;
 extern crate rustc_span;

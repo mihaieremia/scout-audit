@@ -1,5 +1,27 @@
 #![feature(rustc_private)]
 
+//! # token-interface-inference
+//!
+//! Heuristically infers that a contract is a token and recommends implementing
+//! the Soroban `TokenInterface` trait when it does not already.
+//!
+//! ## What it detects
+//! A contract that does not implement `soroban_sdk::token::TokenInterface` but
+//! defines functions whose names closely match (edit distance <= 1) the SEP-41
+//! canonical token functions (`allowance`, `approve`, `balance`, `transfer`,
+//! `transfer_from`, `burn`, `burn_from`, `decimals`, `name`, `symbol`, `mint`),
+//! at or above a 60% coverage threshold.
+//!
+//! ## Why it matters
+//! A contract that looks like a token but does not implement the standard trait
+//! risks diverging from the SEP-41 standard, breaking interoperability with
+//! wallets, indexers, and other contracts that rely on the canonical interface.
+//!
+//! ## Remediation
+//! Implement the `TokenInterface` trait so the contract conforms to SEP-41.
+//!
+//! Severity: Enhancement · Class: BestPractices.
+
 extern crate rustc_errors;
 extern crate rustc_hir;
 extern crate rustc_span;

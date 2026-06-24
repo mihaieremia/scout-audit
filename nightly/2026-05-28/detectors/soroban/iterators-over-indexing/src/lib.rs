@@ -1,5 +1,26 @@
 #![feature(rustc_private)]
 
+//! # iterators-over-indexing
+//!
+//! Detects loops that walk a `soroban_sdk::Vec` by hardcoded numeric index
+//! (via `.get(i)` or `[i]`) instead of iterating over the collection.
+//!
+//! ## What it detects
+//! Indexed access into a `soroban_sdk::vec::Vec` using a constant index or a
+//! range bound that is not derived from `.len()`, typically inside a `for`
+//! loop using a literal upper bound.
+//!
+//! ## Why it matters
+//! A hardcoded index that exceeds the collection length panics at runtime. In a
+//! Soroban contract a panic aborts the invocation and reverts the transaction,
+//! so an out-of-bounds index turns into a denial-of-service for that entry point.
+//!
+//! ## Remediation
+//! Iterate over the collection directly, or bound the loop with the collection's
+//! own `.len()` so the index can never exceed the available elements.
+//!
+//! Severity: Medium · Class: Arithmetic.
+
 extern crate rustc_ast;
 extern crate rustc_hir;
 extern crate rustc_middle;

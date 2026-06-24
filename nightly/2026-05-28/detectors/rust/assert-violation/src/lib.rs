@@ -1,5 +1,25 @@
 #![feature(rustc_private)]
 
+//! # assert-violation
+//!
+//! A pre-expansion early lint that flags `assert!`-family macros used in
+//! contract code (outside of tests).
+//!
+//! ## What it detects
+//! Calls to `assert!`, `assert_eq!`, or `assert_ne!` anywhere that is not
+//! inside a `#[test]` / `#[cfg(test)]` item.
+//!
+//! ## Why it matters
+//! A failing `assert!` unwinds into a panic. In smart contract code an
+//! unexpected panic aborts execution instead of returning a structured error,
+//! which is poor error-handling practice and can surprise callers.
+//!
+//! ## Remediation
+//! Validate the condition explicitly and return a proper `Err(..)` value
+//! instead of asserting.
+//!
+//! Severity: Enhancement · Class: ErrorHandling.
+
 extern crate rustc_ast;
 extern crate rustc_span;
 

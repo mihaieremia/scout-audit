@@ -1,5 +1,30 @@
 #![feature(rustc_private)]
 
+//! # set-contract-storage
+//!
+//! Detects storage writes keyed by a user-supplied address that are reachable
+//! without any authorization check, letting an arbitrary caller write arbitrary
+//! storage slots.
+//!
+//! ## What it detects
+//! A call to `set()` on Soroban storage (`Instance`/`Persistent`/`Temporary`)
+//! whose first argument is an `Address`, in a function where authorization is
+//! not found inline (`addr.require_auth()`), is not reachable through the
+//! function call graph, and is not an OpenZeppelin access-control enforcer
+//! (`enforce_owner_auth` / `enforce_admin_auth`).
+//!
+//! ## Why it matters
+//! When an unauthenticated user controls the storage key, they can overwrite any
+//! mapping entry, lazy variable, or the contract's main struct at storage slot 0.
+//! This is a critical authorization flaw that can let an attacker seize control
+//! of the contract.
+//!
+//! ## Remediation
+//! Require authorization before the storage write: call `require_auth` on the
+//! controlling address, or gate the entry point with an access-control check.
+//!
+//! Severity: Critical · Class: Authorization.
+
 extern crate rustc_hir;
 extern crate rustc_span;
 

@@ -1,5 +1,25 @@
 #![feature(rustc_private)]
 #![recursion_limit = "256"]
+//! # vec-could-be-mapping
+//!
+//! Flags linear lookups over a storage-backed `Vec` of tuples that would be
+//! cheaper as a `Map`.
+//!
+//! ## What it detects
+//! An `iter().find(..)` over a `soroban_sdk::Vec<(K, V)>` (a vector of tuples)
+//! whose contents originate from storage, either read directly or through a local
+//! binding assigned from a storage `get`.
+//!
+//! ## Why it matters
+//! Scanning a vector to find a keyed entry is O(n) and grows the contract's gas
+//! cost with the collection size; a keyed mapping makes the lookup constant-time.
+//!
+//! ## Remediation
+//! Store the data under a parametrized enum storage key (a mapping) and look it up
+//! by key instead of iterating with `find`.
+//!
+//! Severity: Enhancement · Class: GasUsage.
+
 extern crate rustc_ast;
 extern crate rustc_hir;
 extern crate rustc_middle;

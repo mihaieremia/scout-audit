@@ -1,4 +1,25 @@
 #![feature(rustc_private)]
+//! # unused-return-enum
+//!
+//! Flags methods that return a `Result` but only ever construct one of its
+//! variants.
+//!
+//! ## What it detects
+//! A method whose declared return type is `Result` where, across the body, only
+//! `Ok(..)` or only `Err(..)` is produced (counting `?`/`try`, early returns, and
+//! combinators like `ok_or`, `map_err`, `unwrap_or` as evidence the other variant
+//! is reachable). If one variant is never used, it fires.
+//!
+//! ## Why it matters
+//! An always-`Ok` (or always-`Err`) `Result` signals dead error handling: either
+//! the function should be simplified to a non-`Result` type, or a missing error
+//! path indicates a latent bug.
+//!
+//! ## Remediation
+//! Either return the unwrapped type when no error is possible, or add the missing
+//! error path so both variants are meaningful.
+//!
+//! Severity: Minor · Class: ErrorHandling.
 
 extern crate rustc_hir;
 extern crate rustc_span;

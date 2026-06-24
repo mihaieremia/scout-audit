@@ -1,4 +1,26 @@
 #![feature(rustc_private)]
+//! # excessive-token-approval
+//!
+//! Flags `approve` calls on a Soroban token client that grant an effectively
+//! unlimited or never-expiring allowance.
+//!
+//! ## What it detects
+//! A method call `approve(from, spender, amount, expiration_ledger)` whose
+//! receiver type is `soroban_sdk::token::TokenClient` where, as a compile-time
+//! constant, the `amount` sits within ~0.1% of `i128::MAX` or the
+//! `expiration_ledger` sits within ~0.1% of `u32::MAX`. The receiver type gate
+//! keeps `i128::MAX` sentinels in other contexts from being flagged.
+//!
+//! ## Why it matters
+//! A near-max `amount` or far-future `expiration_ledger` leaves a standing
+//! allowance the spender can drain at any time, the Soroban analog of an
+//! unlimited ERC-20 approval.
+//!
+//! ## Remediation
+//! Approve only the amount required, and set `expiration_ledger` relative to
+//! `env.ledger().sequence()` rather than a far-future constant.
+//!
+//! Severity: Medium · Class: Authorization.
 
 extern crate rustc_hir;
 extern crate rustc_span;

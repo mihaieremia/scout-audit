@@ -1,4 +1,27 @@
 #![feature(rustc_private)]
+//! # ineffective-extend-ttl
+//!
+//! Flags `extend_ttl` calls whose arguments cannot actually extend an entry's
+//! time-to-live.
+//!
+//! ## What it detects
+//! A `.extend_ttl(...)` call on Soroban storage where the `threshold` and
+//! `extend_to` arguments are structurally equivalent (the same binding), or
+//! where both resolve to constants with `extend_to <= threshold`. Argument
+//! positions are read according to storage kind (instance: 2 args;
+//! persistent/temporary: 3 args).
+//!
+//! ## Why it matters
+//! `extend_ttl` can only raise an entry's lifetime. When the new TTL is not
+//! strictly greater than the threshold, the call refreshes nothing yet still
+//! runs on every access, so the entry never meaningfully expires and the call is
+//! wasted work.
+//!
+//! ## Remediation
+//! Ensure `extend_to` is strictly greater than `threshold`, or enforce
+//! expiration through contract logic rather than relying on `extend_ttl`.
+//!
+//! Severity: Medium · Class: BestPractices.
 
 extern crate rustc_hir;
 extern crate rustc_span;

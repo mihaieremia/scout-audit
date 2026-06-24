@@ -1,5 +1,28 @@
 #![feature(rustc_private)]
 
+//! # unchecked-cross-contract-result
+//!
+//! Detects Soroban `Client::try_<m>` cross-contract calls whose `Result` is
+//! discarded, silently swallowing a failed call.
+//!
+//! ## What it detects
+//! A method call whose name starts with `try_` (excluding std/container
+//! `try_*` methods), with a receiver typed as a Soroban contract `Client`,
+//! returning `core::result::Result`, where the result is ignored either as a
+//! bare statement (`client.try_x(..);`) or bound to a wildcard (`let _ = ..`).
+//!
+//! ## Why it matters
+//! Unlike the non-`try_` variant, a `try_<m>` call does not panic on failure;
+//! it returns `Result<Result<T, _>, _>`. Dropping that result lets the contract
+//! continue as though the cross-contract or token call had succeeded, which can
+//! corrupt state or skip a required transfer.
+//!
+//! ## Remediation
+//! Inspect the returned `Result` and handle the failed case explicitly: match on
+//! `Ok(Ok(..))`, or return/propagate an error when the inner call fails.
+//!
+//! Severity: Medium · Class: ErrorHandling.
+
 extern crate rustc_hir;
 extern crate rustc_span;
 

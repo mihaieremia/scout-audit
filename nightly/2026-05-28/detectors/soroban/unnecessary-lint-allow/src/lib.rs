@@ -1,5 +1,26 @@
 #![feature(rustc_private)]
 
+//! # unnecessary-lint-allow
+//!
+//! Flags `#[scout_allow(..)]` attributes that suppress a Scout detector which is
+//! no longer being triggered, so the suppression can be removed.
+//!
+//! ## What it detects
+//! A `#[scout_allow(<lint>)]` attribute on an item or impl item, reported once
+//! per lint name listed inside it. It is a pre-expansion lint that reads the
+//! attribute token stream directly.
+//!
+//! ## Why it matters
+//! Stale `#[scout_allow]` attributes accumulate as code changes and mask the
+//! detectors they name. A lingering allow can hide a real finding if the
+//! underlying code is later edited back into a vulnerable shape.
+//!
+//! ## Remediation
+//! Remove the `#[scout_allow(..)]` attribute once the named detector no longer
+//! fires on the annotated code.
+//!
+//! Severity: Enhancement · Class: BestPractices.
+
 extern crate rustc_ast;
 extern crate rustc_hir;
 extern crate rustc_span;

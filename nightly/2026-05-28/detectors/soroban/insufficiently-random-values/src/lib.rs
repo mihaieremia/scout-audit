@@ -1,4 +1,25 @@
 #![feature(rustc_private)]
+//! # insufficiently-random-values
+//!
+//! Flags use of the ledger timestamp or sequence number as a source of
+//! randomness.
+//!
+//! ## What it detects
+//! A remainder expression `<expr> % <_>` whose left side is a method call to
+//! `timestamp()` or `sequence()` (i.e. `env.ledger().timestamp() % n` or
+//! `env.ledger().sequence() % n`), the typical "pick a value modulo N" pattern.
+//!
+//! ## Why it matters
+//! Ledger timestamp and sequence are controlled by validators and are
+//! predictable, so deriving randomness from them lets a validator or observer
+//! influence or foresee the outcome, breaking lotteries, selections, or any
+//! security decision that depends on unpredictability.
+//!
+//! ## Remediation
+//! Use `env.prng()` for randomness, while remembering that on-chain randomness is
+//! still ultimately under validator control for high-value decisions.
+//!
+//! Severity: Critical · Class: BlockAttributes.
 
 extern crate rustc_hir;
 extern crate rustc_span;

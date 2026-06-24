@@ -1,5 +1,27 @@
 #![feature(rustc_private)]
 #![warn(unused_extern_crates)]
+//! # dos-unexpected-revert-with-storage
+//!
+//! Flags storage-growing collection operations that run without access control.
+//!
+//! ## What it detects
+//! Calls to `soroban_sdk::Vec::push_back`/`push_front` or `soroban_sdk::Map::set`
+//! that are not protected by `require_auth`. Protection is checked
+//! interprocedurally: a call graph is built so authorization is considered
+//! present whenever `require_auth` is reachable from the operation's function or
+//! from a Soroban caller, not only when it appears inline.
+//!
+//! ## Why it matters
+//! If any user can append to a shared `Vec`/`Map`, they can grow it until an
+//! operation over it exceeds resource limits and reverts. That revert blocks
+//! other users' transactions, effectively a denial-of-service that pins the
+//! contract in a stuck state.
+//!
+//! ## Remediation
+//! Gate state-growing storage writes behind `require_auth` (or equivalent access
+//! control) so only authorized callers can expand shared collections.
+//!
+//! Severity: Medium · Class: DoS.
 
 extern crate rustc_hir;
 extern crate rustc_middle;

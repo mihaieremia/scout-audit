@@ -1,4 +1,24 @@
 #![feature(rustc_private)]
+//! # unrestricted-transfer-from
+//!
+//! Flags `transfer_from` calls whose `from` address is a user-supplied function
+//! parameter that the caller has not been required to authorize.
+//!
+//! ## What it detects
+//! A `client.transfer_from(.., from, ..)` where `from` is a function parameter
+//! and no `from.require_auth()`/`require_auth_for_args` is performed on that same
+//! parameter anywhere in the body.
+//!
+//! ## Why it matters
+//! With an arbitrary, unauthorized `from`, anyone can move tokens out of any
+//! account that has granted the contract an allowance, leading to unauthorized
+//! transfers and loss of funds.
+//!
+//! ## Remediation
+//! Restrict the `from` address (e.g. derive it from the authenticated caller) or
+//! require it to authorize the call via `from.require_auth()`.
+//!
+//! Severity: Critical · Class: Authorization.
 
 extern crate rustc_ast;
 extern crate rustc_hir;

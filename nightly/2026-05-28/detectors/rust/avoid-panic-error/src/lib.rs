@@ -1,5 +1,26 @@
 #![feature(rustc_private)]
 
+//! # avoid-panic-error
+//!
+//! A pre-expansion early lint that flags `panic!` used inside functions whose
+//! return type is `Result`.
+//!
+//! ## What it detects
+//! A `panic!` macro call within the body of a non-test function (free function,
+//! inherent/trait method, or item in a loaded module) whose declared return
+//! type's last path segment is `Result`.
+//!
+//! ## Why it matters
+//! A function that returns `Result` advertises recoverable errors to its
+//! callers. Panicking instead defeats that contract: the error cannot be
+//! handled and, in contract code, the panic aborts execution.
+//!
+//! ## Remediation
+//! Propagate the error with the `?` operator or `return Err(..)` instead of
+//! panicking.
+//!
+//! Severity: Enhancement · Class: ErrorHandling.
+
 extern crate rustc_ast;
 extern crate rustc_span;
 

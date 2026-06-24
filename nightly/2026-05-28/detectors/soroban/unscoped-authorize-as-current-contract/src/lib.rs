@@ -1,4 +1,26 @@
 #![feature(rustc_private)]
+//! # unscoped-authorize-as-current-contract
+//!
+//! Flags `env.authorize_as_current_contract(..)` entries that delegate the
+//! current contract's authority too broadly.
+//!
+//! ## What it detects
+//! A `SubContractInvocation` passed to `authorize_as_current_contract` whose
+//! `sub_invocations` field is provably non-empty (e.g. a `vec![..]` with at least
+//! one element), as determined by statically inspecting the `Vec` constructor.
+//!
+//! ## Why it matters
+//! A non-empty `sub_invocations` tree pre-authorizes every nested call on behalf
+//! of the contract, not just the intended one. This is the Soroban analog of an
+//! unlimited ERC-20 approval and can let a deeper call act with the contract's
+//! authority.
+//!
+//! ## Remediation
+//! Authorize a single, one-shot invocation by leaving `sub_invocations` empty
+//! (`Vec::new(&env)`); add nested entries only when each deeper call is itself
+//! intended and bounded.
+//!
+//! Severity: Critical · Class: Authorization.
 
 extern crate rustc_hir;
 extern crate rustc_span;

@@ -1,4 +1,27 @@
 #![feature(rustc_private)]
+//! # contract-import-dependency
+//!
+//! Flags uses of the `contractimport!` macro that embed another contract's WASM
+//! without tracking it as an explicit Cargo dependency.
+//!
+//! ## What it detects
+//! A `contractimport!(...)` invocation outside of test code, then two checks on
+//! the embedded `.wasm` path: (1) the contract name is not present in the
+//! crate's `[dependencies]`/`[build-dependencies]` in `Cargo.toml`, and (2) the
+//! path does not follow the `/release/deps/` pattern.
+//!
+//! ## Why it matters
+//! `contractimport!` embeds a contract binary without requiring it to be a
+//! declared dependency. The toolchain cannot detect that the embedded WASM is
+//! stale, so tests keep passing against an outdated build and the contract may
+//! ship with an old, possibly vulnerable, version of its imported dependency.
+//!
+//! ## Remediation
+//! Declare the imported contract in `Cargo.toml` (e.g. `name = { path = ... }`)
+//! and import its WASM from the `/release/deps/` build output so upgrades are
+//! caught by the toolchain.
+//!
+//! Severity: Medium · Class: BestPractices.
 
 extern crate rustc_ast;
 extern crate rustc_span;

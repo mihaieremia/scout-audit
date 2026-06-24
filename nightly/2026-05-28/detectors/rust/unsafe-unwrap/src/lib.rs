@@ -1,5 +1,26 @@
 #![feature(rustc_private)]
 
+//! # unsafe-unwrap
+//!
+//! A late lint that flags `.unwrap()` calls that can panic, after ruling out
+//! provably-safe receivers.
+//!
+//! ## What it detects
+//! In non-macro functions, it runs a `ConstantAnalyzer` to identify values
+//! known to be safe, then reports the remaining `unwrap` calls via the shared
+//! `UnsafeChecks` visitor.
+//!
+//! ## Why it matters
+//! `unwrap` retrieves the inner value of a `Result`/`Option` and panics on the
+//! error/`None` case. An unchecked `unwrap` on attacker- or state-controlled
+//! data lets callers force the contract to panic instead of returning an error.
+//!
+//! ## Remediation
+//! Handle the `Option`/`Result` explicitly with pattern matching or the `?`
+//! operator and return a proper error instead of unwrapping.
+//!
+//! Severity: Medium · Class: ErrorHandling.
+
 extern crate rustc_hir;
 extern crate rustc_span;
 

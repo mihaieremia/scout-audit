@@ -86,6 +86,10 @@ jobs:
           # reports upload automatically as the 'scout-audit-reports' artifact
 ```
 
+> **Pinning:** `@v1` is a moving major alias (latest v1.x). On **self-hosted runners**,
+> pin an immutable release instead (e.g. `@v1.1.0`) — self-hosted runners cache action
+> checkouts, so a moved tag can serve a stale build.
+
 **Inputs:** `contracts` (space/newline list of contract dirs or `Cargo.toml` paths;
 default = repo root), `output-format` (`md`\|`json`\|`sarif`\|`html`), `output-dir`,
 `exclude` (comma-separated detector names), `toolchain`, `fail-on-severity`

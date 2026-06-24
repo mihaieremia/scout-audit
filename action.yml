@@ -1,0 +1,139 @@
+name: 'Scout Audit (Soroban)'
+description: 'Run the XOXNO Scout Soroban security detectors against your smart contracts.'
+author: 'XOXNO'
+branding:
+  icon: 'shield'
+  color: 'blue'
+
+inputs:
+  contracts:
+    description: >-
+      Space- or newline-separated list of contract directories (each containing a
+      Cargo.toml) or Cargo.toml paths to scan. Defaults to the repository root,
+      which scans every member of a root workspace.
+    required: false
+    default: '.'
+  output-format:
+    description: 'Report format: md | json | sarif | html.'
+    required: false
+    default: 'md'
+  output-dir:
+    description: 'Directory (relative to the workspace) where per-contract reports are written.'
+    required: false
+    default: 'scout-reports'
+  exclude:
+    description: 'Comma-separated detector names to exclude (e.g. "dos-unexpected-revert-with-storage").'
+    required: false
+    default: ''
+  toolchain:
+    description: 'Detector nightly toolchain. Override only if you know what you are doing.'
+    required: false
+    default: 'nightly-2026-05-28'
+  fail-on-findings:
+    description: >-
+      Fail the step if any contract produces findings. Only effective with
+      output-format json or sarif (the parseable formats).
+    required: false
+    default: 'false'
+  extra-args:
+    description: 'Extra arguments passed through verbatim to `cargo scout-audit`.'
+    required: false
+    default: ''
+
+outputs:
+  report-dir:
+    description: 'Absolute path to the directory containing the generated reports.'
+    value: ${{ steps.scout.outputs.report-dir }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install Scout detector toolchain
+      shell: bash
+      run: |
+        rustup toolchain install "${{ inputs.toolchain }}" \
+          --component rustc-dev --component llvm-tools-preview --component rust-src \
+          --target wasm32v1-none
+
+    - name: Install cargo-scout-audit
+      shell: bash
+      run: |
+        cargo install \
+          --path "${{ github.action_path }}/apps/cargo-scout-audit/crates/cargo-scout-audit" \
+          --locked
+
+    - name: Run Scout
+      id: scout
+      shell: bash
+      env:
+        SCOUT_DIR: ${{ github.action_path }}
+        OUT_DIR: ${{ inputs.output-dir }}
+        FMT: ${{ inputs.output-format }}
+        EXCLUDE: ${{ inputs.exclude }}
+        TOOLCHAIN: ${{ inputs.toolchain }}
+        CONTRACTS: ${{ inputs.contracts }}
+        EXTRA: ${{ inputs.extra-args }}
+        FAIL_ON_FINDINGS: ${{ inputs.fail-on-findings }}
+      run: |
+        set -euo pipefail
+        mkdir -p "$OUT_DIR"
+
+        # sccache caches rustc output and would silently skip the dylint lint pass on
+        # cache hits, producing stale (zero) findings — never run Scout under it.
+        unset RUSTC_WRAPPER || true
+
+        exclude_arg=()
+        [ -n "$EXCLUDE" ] && exclude_arg=(--exclude "$EXCLUDE")
+
+        incomplete=0
+        findings=0
+        # CONTRACTS is intentionally unquoted so the list word-splits on whitespace/newlines.
+        # shellcheck disable=SC2086
+        for c in $CONTRACTS; do
+          if [ -f "$c" ]; then manifest="$c"
+          elif [ -f "$c/Cargo.toml" ]; then manifest="$c/Cargo.toml"
+          else echo "::warning::No Cargo.toml at '$c' — skipping"; continue; fi
+
+          name="$(basename "$(dirname "$manifest")")"
+          out="$OUT_DIR/$name.$FMT"
+          echo "::group::Scout $manifest"
+          # shellcheck disable=SC2086
+          if ! cargo "+$TOOLCHAIN" scout-audit \
+              --manifest-path "$manifest" \
+              --scout-source "$SCOUT_DIR" \
+              --local-detectors "$SCOUT_DIR/nightly" \
+              "${exclude_arg[@]}" \
+              --output-format "$FMT" \
+              --output-path "$out" \
+              $EXTRA; then
+            echo "::error::Scout failed to run for $manifest"
+            incomplete=$((incomplete + 1))
+          fi
+          if [ -f "$out" ] && grep -q "Compilation errors\|report is incomplete" "$out" 2>/dev/null; then
+            echo "::error::Scout report for $manifest is incomplete (the contract failed to compile)"
+            incomplete=$((incomplete + 1))
+          fi
+          # Count findings for the parseable formats.
+          if [ -f "$out" ] && { [ "$FMT" = "sarif" ] || [ "$FMT" = "json" ]; }; then
+            if [ "$FMT" = "sarif" ]; then n="$(jq '[.runs[].results[]?] | length' "$out" 2>/dev/null || echo 0)"
+            else n="$(jq '[.. | objects | select(has("code")) | .code] | length' "$out" 2>/dev/null || echo 0)"; fi
+            [ "${n:-0}" -gt 0 ] && findings=$((findings + n))
+          fi
+          echo "::endgroup::"
+        done
+
+        echo "report-dir=$(cd "$OUT_DIR" && pwd)" >> "$GITHUB_OUTPUT"
+        echo "Scout reports written to $OUT_DIR"
+
+        if [ "$incomplete" -gt 0 ]; then
+          echo "::error::$incomplete contract(s) did not analyze cleanly"
+          exit 1
+        fi
+        if [ "$FAIL_ON_FINDINGS" = "true" ]; then
+          if [ "$FMT" != "sarif" ] && [ "$FMT" != "json" ]; then
+            echo "::warning::fail-on-findings needs output-format json or sarif; ignoring"
+          elif [ "$findings" -gt 0 ]; then
+            echo "::error::Scout reported $findings finding(s)"
+            exit 1
+          fi
+        fi

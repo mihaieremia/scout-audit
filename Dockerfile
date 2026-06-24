@@ -13,15 +13,14 @@ COPY . /usr/src/scout-audit
 WORKDIR /usr/src/scout-audit/apps/cargo-scout-audit
 RUN cargo install --path crates/cargo-scout-audit --locked
 RUN cargo install dylint-link --locked
-RUN rustup target add wasm32-unknown-unknown --toolchain nightly-2025-08-07
+RUN rustup toolchain install nightly-2026-05-28 \
+      --component rustc-dev --component llvm-tools-preview --component rust-src \
+      --target wasm32v1-none
 
-WORKDIR /usr/src/scout-audit/nightly/2025-08-07/detectors/ink
+# Warm the detector build cache (Soroban + shared Rust detectors).
+WORKDIR /usr/src/scout-audit/nightly/2026-05-28/detectors/rust
 RUN cargo build --release
-WORKDIR /usr/src/scout-audit/nightly/2025-08-07/detectors/rust
-RUN cargo build --release
-WORKDIR /usr/src/scout-audit/nightly/2025-08-07/detectors/soroban
-RUN cargo build --release
-WORKDIR /usr/src/scout-audit/nightly/2025-08-07/detectors/substrate-pallets
+WORKDIR /usr/src/scout-audit/nightly/2026-05-28/detectors/soroban
 RUN cargo build --release
 
 # Stage 2: Final

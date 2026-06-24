@@ -65,10 +65,44 @@ cargo scout-audit ... --output-format [md|html|json|sarif] --output-path report.
 
 ## GitHub Action
 
-A container entrypoint ([`entrypoint.sh`](entrypoint.sh)) runs Scout against the target
-project using the detectors and driver baked into the image, so nothing is fetched at
-analysis time. Set `INPUT_TARGET` to the project directory and `INPUT_SCOUT_ARGS` to any
-extra flags (e.g. `--output-format sarif`).
+This repository **is a composite GitHub Action**, so any project can run the full Soroban
+detector suite in CI with a single step. Pin it to a commit or tag of this repo:
+
+```yaml
+name: Scout
+on: [pull_request]
+permissions:
+  contents: read
+  security-events: write   # only needed for the optional SARIF upload below
+jobs:
+  scout:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: mihaieremia/scout-audit@<commit-or-tag>
+        with:
+          contracts: |
+            contracts/pool
+            contracts/controller
+          output-format: sarif
+          output-dir: scout-reports
+      # Optional: surface findings in the repo's Security tab.
+      - uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: scout-reports
+```
+
+**Inputs:** `contracts` (space/newline list of contract dirs or `Cargo.toml` paths;
+default = repo root), `output-format` (`md`\|`json`\|`sarif`\|`html`), `output-dir`,
+`exclude` (comma-separated detector names), `toolchain`, `fail-on-findings` (effective for
+`json`/`sarif`), and `extra-args`. The action installs the pinned toolchain, builds the
+driver + detectors from the pinned checkout (no network fetch at analysis time), and writes
+one report per contract to `output-dir`. The step fails if a contract fails to analyze;
+findings are advisory unless `fail-on-findings: true`.
+
+A container image ([`Dockerfile`](Dockerfile) + [`entrypoint.sh`](entrypoint.sh)) is also
+available for non-Actions CI.
 
 ## Detectors
 

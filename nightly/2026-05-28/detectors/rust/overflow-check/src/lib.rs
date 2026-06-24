@@ -121,7 +121,7 @@ impl EarlyLintPass for OverflowCheck {
         };
 
         // Attempt to parse Cargo.toml
-        let toml = match contents.parse::<Value>() {
+        let toml = match toml::from_str::<Value>(&contents) {
             Ok(parsed) => parsed,
             Err(e) => {
                 cx.sess()

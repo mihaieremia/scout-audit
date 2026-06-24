@@ -96,7 +96,7 @@ impl IntegerOverflowOrUnderflow {
             return false;
         };
 
-        let Ok(toml) = contents.parse::<Value>() else {
+        let Ok(toml) = toml::from_str::<Value>(&contents) else {
             return false;
         };
 

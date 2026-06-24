@@ -1,0 +1,5 @@
+{
+  "findings": [
+    { "detector": "auth-address-mismatch", "count": 1, "lines": [21] }
+  ]
+}

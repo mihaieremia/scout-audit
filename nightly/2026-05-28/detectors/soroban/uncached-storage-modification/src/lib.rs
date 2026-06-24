@@ -53,7 +53,7 @@ pub static UNCACHED_STORAGE_MODIFICATION_INFO: LintInfo = LintInfo {
     short_message: LINT_MESSAGE,
     long_message: "Checks for storage variables that are read, modified, and then re-read without being written back to storage.",
     severity: Severity::Medium,
-    help: "Write the modified value back to storage before re-reading it.",
+    help: "https://coinfabrik.github.io/scout-audit/docs/detectors/soroban/uncached-storage-modification",
     vulnerability_class: VulnerabilityClass::BestPractices,
 };
 

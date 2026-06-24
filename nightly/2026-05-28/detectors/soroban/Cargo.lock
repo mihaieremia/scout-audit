@@ -40,6 +40,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f02882884d3e1bc524fb12c79f107f6ad0e1cfd498c536ffb494301740995dfe"
 
 [[package]]
+name = "auth-address-mismatch"
+version = "0.1.0"
+dependencies = [
+ "clippy_utils",
+ "common",
+ "dylint_internal",
+ "dylint_linting",
+ "if_chain",
+]
+
+[[package]]
 name = "avoid-core-mem-forget"
 version = "0.1.0"
 dependencies = [
@@ -131,6 +142,17 @@ dependencies = [
  "itertools 0.12.1",
  "rustc_apfloat",
  "serde",
+]
+
+[[package]]
+name = "clone-in-loop"
+version = "0.1.0"
+dependencies = [
+ "clippy_utils",
+ "common",
+ "dylint_internal",
+ "dylint_linting",
+ "if_chain",
 ]
 
 [[package]]
@@ -480,6 +502,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "instance-storage-per-user-key"
+version = "0.1.0"
+dependencies = [
+ "clippy_utils",
+ "common",
+ "dylint_internal",
+ "dylint_linting",
+ "if_chain",
+]
+
+[[package]]
 name = "insufficiently-random-values"
 version = "0.1.0"
 dependencies = [
@@ -544,6 +577,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "68ab91017fe16c622486840e4c83c9a37afeff978bd239b5293d61ece587de66"
 
 [[package]]
+name = "linear-scan-in-loop"
+version = "0.1.0"
+dependencies = [
+ "clippy_utils",
+ "common",
+ "dylint_internal",
+ "dylint_linting",
+ "if_chain",
+]
+
+[[package]]
 name = "litemap"
 version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -604,6 +648,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "non-terminating-loop"
+version = "0.1.0"
+dependencies = [
+ "clippy_utils",
+ "common",
+ "dylint_internal",
+ "dylint_linting",
+ "if_chain",
+]
+
+[[package]]
 name = "once_cell"
 version = "1.21.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -646,6 +701,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dfbc457d0c7a0759a614551b11a6409e5951f6c7537be1f1b7682b9ae9230368"
 dependencies = [
  "proc-macro2",
+]
+
+[[package]]
+name = "raw-symbol-storage-key"
+version = "0.1.0"
+dependencies = [
+ "clippy_utils",
+ "common",
+ "dylint_internal",
+ "dylint_linting",
+ "if_chain",
 ]
 
 [[package]]

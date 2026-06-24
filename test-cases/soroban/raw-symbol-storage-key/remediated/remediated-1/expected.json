@@ -1,0 +1,5 @@
+{
+  "findings": [
+    { "detector": "raw-symbol-storage-key", "count": 0 }
+  ]
+}

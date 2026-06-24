@@ -1,0 +1,5 @@
+{
+  "findings": [
+    { "detector": "non-terminating-loop", "count": 1, "lines": [16] }
+  ]
+}

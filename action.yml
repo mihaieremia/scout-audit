@@ -46,6 +46,18 @@ inputs:
       soroban-sdk spec-shaking shim, or pass RUSTFLAGS / feature toggles).
     required: false
     default: ''
+  upload-reports:
+    description: 'Upload the generated reports as a workflow artifact (no extra step needed in your workflow).'
+    required: false
+    default: 'true'
+  artifact-name:
+    description: 'Name for the uploaded reports artifact.'
+    required: false
+    default: 'scout-audit-reports'
+  retention-days:
+    description: 'Days to retain the reports artifact.'
+    required: false
+    default: '7'
 
 outputs:
   report-dir:
@@ -162,3 +174,15 @@ runs:
             exit 1
           fi
         fi
+
+    # Upload the reports as a workflow artifact, so consumers don't have to add their
+    # own upload step. Runs even if analysis failed (partial reports are still useful);
+    # set upload-reports: false to skip.
+    - name: Upload Scout reports
+      if: ${{ always() && inputs.upload-reports == 'true' }}
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: ${{ inputs.output-dir }}/
+        retention-days: ${{ inputs.retention-days }}
+        if-no-files-found: warn

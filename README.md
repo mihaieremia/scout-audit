@@ -73,38 +73,34 @@ detector suite in CI with a single step. A ready-to-copy workflow lives in
 ```yaml
 name: Scout
 on: [pull_request]
-permissions:
-  contents: read
-  security-events: write   # only needed for the optional SARIF upload below
 jobs:
   scout:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: dtolnay/rust-toolchain@stable
       - uses: mihaieremia/scout-audit@v1
         with:
           contracts: |
             contracts/pool
             contracts/controller
-          output-format: sarif
-          output-dir: scout-reports
-      # Optional: surface findings in the repo's Security tab.
-      - uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: scout-reports
+          # reports upload automatically as the 'scout-audit-reports' artifact
 ```
 
 **Inputs:** `contracts` (space/newline list of contract dirs or `Cargo.toml` paths;
 default = repo root), `output-format` (`md`\|`json`\|`sarif`\|`html`), `output-dir`,
 `exclude` (comma-separated detector names), `toolchain`, `fail-on-findings` (effective for
-`json`/`sarif`), and `extra-args`. The action installs the pinned toolchain, builds the
-driver + detectors from the pinned checkout (no network fetch at analysis time), and writes
-one report per contract to `output-dir`. The step fails if a contract fails to analyze;
-findings are advisory unless `fail-on-findings: true`.
+`json`/`sarif`), `extra-args`, `env` (newline `KEY=VALUE` build-env overrides), and the
+artifact controls `upload-reports` (default `true`), `artifact-name`, and `retention-days`.
+The action installs the pinned toolchain, builds the driver + detectors from the pinned
+checkout (no network fetch at analysis time), writes one report per contract to
+`output-dir`, and **uploads them as a workflow artifact automatically** — no upload step to
+write yourself. The step fails if a contract fails to analyze; findings are advisory unless
+`fail-on-findings: true`.
 
-A container image ([`Dockerfile`](Dockerfile) + [`entrypoint.sh`](entrypoint.sh)) is also
-available for non-Actions CI.
+To surface findings in the repo's Security tab instead, set `output-format: sarif` +
+`upload-reports: false`, grant `security-events: write`, and add a final
+`github/codeql-action/upload-sarif` step. A container image ([`Dockerfile`](Dockerfile) +
+[`entrypoint.sh`](entrypoint.sh)) is also available for non-Actions CI.
 
 ## Detectors
 

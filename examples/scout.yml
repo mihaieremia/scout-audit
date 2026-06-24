@@ -2,7 +2,8 @@
 #
 # Copy this file to `.github/workflows/scout.yml` in your Soroban project, edit the
 # `contracts:` list below, and you're done. It runs the full Scout Soroban detector
-# suite on every pull request and writes one report per contract.
+# suite on every pull request and uploads one report per contract as an artifact —
+# no upload step to write yourself.
 #
 # Docs: https://github.com/mihaieremia/scout-audit#github-action
 
@@ -13,20 +14,12 @@ on:
   push:
     branches: [main]
 
-# `security-events: write` is only needed for the optional SARIF upload (Security tab).
-permissions:
-  contents: read
-  security-events: write
-
 jobs:
   scout:
     name: Scout Audit
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-
-      # Optional — ensures rustup/cargo are present (GitHub-hosted runners already have them).
-      - uses: dtolnay/rust-toolchain@stable
 
       - name: Run Scout
         uses: mihaieremia/scout-audit@v1
@@ -37,27 +30,27 @@ jobs:
             contracts/my-contract
             contracts/another-contract
 
-          # md | json | sarif | html. Use `sarif` to surface findings in the Security tab.
-          output-format: sarif
+          # md | json | sarif | html.
+          output-format: md
           output-dir: scout-reports
+
+          # Reports are uploaded automatically as this artifact (set upload-reports: false
+          # to skip — e.g. if you upload SARIF to the Security tab yourself, see below).
+          upload-reports: true
+          artifact-name: scout-audit-reports
+          retention-days: 7
 
           # Optional — comma-separated detectors to skip.
           # exclude: dos-unexpected-revert-with-storage
-
           # Optional — fail the job on any finding (json/sarif only). Default: advisory.
           # fail-on-findings: 'true'
+          # Optional — extra build env, newline-separated KEY=VALUE.
+          # env: |
+          #   RUSTFLAGS=--cfg something
 
-      # Option A — surface findings in the repo's Security tab (needs output-format: sarif).
-      - name: Upload SARIF
-        if: always()
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: scout-reports
-
-      # Option B — instead, just keep the reports as a downloadable artifact (any format).
-      # - name: Upload reports
-      #   if: always()
-      #   uses: actions/upload-artifact@v7
-      #   with:
-      #     name: scout-reports
-      #     path: scout-reports/
+# ── Variant: surface findings in the repo's Security tab ─────────────────────────────
+# Set `output-format: sarif`, `upload-reports: false`, add `permissions: { security-events:
+# write }` at the job/workflow level, then a final step:
+#   - uses: github/codeql-action/upload-sarif@v3
+#     with:
+#       sarif_file: scout-reports

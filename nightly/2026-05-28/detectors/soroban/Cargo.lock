@@ -1047,6 +1047,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "unchecked-cross-contract-result"
+version = "0.1.0"
+dependencies = [
+ "clippy_utils",
+ "common",
+ "dylint_internal",
+ "dylint_linting",
+ "if_chain",
+]
+
+[[package]]
 name = "unicode-ident"
 version = "1.0.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1079,6 +1090,17 @@ dependencies = [
 
 [[package]]
 name = "unprotected-mapping-operation"
+version = "0.1.0"
+dependencies = [
+ "clippy_utils",
+ "common",
+ "dylint_internal",
+ "dylint_linting",
+ "if_chain",
+]
+
+[[package]]
+name = "unprotected-token-admin-operation"
 version = "0.1.0"
 dependencies = [
  "clippy_utils",
@@ -1122,6 +1144,17 @@ dependencies = [
 
 [[package]]
 name = "unsafe-map-get"
+version = "0.1.0"
+dependencies = [
+ "clippy_utils",
+ "common",
+ "dylint_internal",
+ "dylint_linting",
+ "if_chain",
+]
+
+[[package]]
+name = "unsafe-temporary-storage"
 version = "0.1.0"
 dependencies = [
  "clippy_utils",

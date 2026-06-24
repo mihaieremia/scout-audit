@@ -1,0 +1,5 @@
+{
+  "findings": [
+    { "detector": "unprotected-token-admin-operation", "count": 1, "lines": [21] }
+  ]
+}

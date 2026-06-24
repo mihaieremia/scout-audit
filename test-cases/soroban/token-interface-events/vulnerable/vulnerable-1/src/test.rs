@@ -4,10 +4,8 @@ use soroban_sdk::{Address, Env};
 
 fn initialize_env<'a>() -> (Env, TokenInterfaceEventsClient<'a>, Address, [Address; 5]) {
     let env = Env::default();
-    let token_contract = TokenInterfaceEventsClient::new(
-        &env,
-        &env.register(TokenInterfaceEvents, ()),
-    );
+    let token_contract =
+        TokenInterfaceEventsClient::new(&env, &env.register(TokenInterfaceEvents, ()));
     let admin = Address::generate(&env);
     let decimals: u32 = 3;
     let name: String = String::from_str(&env, "TestToken");
@@ -26,10 +24,8 @@ fn initialize_env<'a>() -> (Env, TokenInterfaceEventsClient<'a>, Address, [Addre
 #[test]
 fn test_init_token() {
     let env = Env::default();
-    let token_contract = TokenInterfaceEventsClient::new(
-        &env,
-        &env.register(TokenInterfaceEvents, ()),
-    );
+    let token_contract =
+        TokenInterfaceEventsClient::new(&env, &env.register(TokenInterfaceEvents, ()));
     let admin = Address::generate(&env);
     let decimals: u32 = 9;
     let name: String = String::from_str(&env, "TestToken");

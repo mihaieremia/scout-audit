@@ -1,0 +1,5 @@
+{
+  "findings": [
+    { "detector": "unchecked-cross-contract-result", "count": 0 }
+  ]
+}

@@ -34,8 +34,7 @@ mod tests {
     #[test]
     fn does_not_revert_if_greater() {
         let env = Env::default();
-        let contract =
-            AssertViolationClient::new(&env, &env.register(AssertViolation, ()));
+        let contract = AssertViolationClient::new(&env, &env.register(AssertViolation, ()));
         assert!(contract.assert_if_greater_than_10(&5));
     }
 
@@ -43,8 +42,7 @@ mod tests {
     #[should_panic(expected = "value should be less than 10")]
     fn reverts_if_greater() {
         let env = Env::default();
-        let contract =
-            AssertViolationClient::new(&env, &env.register(AssertViolation, ()));
+        let contract = AssertViolationClient::new(&env, &env.register(AssertViolation, ()));
         contract.assert_if_greater_than_10(&11);
     }
 }

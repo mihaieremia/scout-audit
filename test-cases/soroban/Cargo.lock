@@ -595,6 +595,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a4ae5f15dda3c708c0ade84bfee31ccab44a3da4f88015ed22f63732abe300c8"
 
 [[package]]
+name = "debug-assert-in-contract-remediated-1"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
+name = "debug-assert-in-contract-vulnerable-1"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
 name = "dependency-contract"
 version = "0.1.0"
 dependencies = [
@@ -2392,6 +2406,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "unchecked-cross-contract-result-remediated-1"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
+name = "unchecked-cross-contract-result-vulnerable-1"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
 name = "unicode-ident"
 version = "1.0.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2471,6 +2499,27 @@ dependencies = [
 
 [[package]]
 name = "unprotected-mapping-operation-vulnerable-2"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
+name = "unprotected-token-admin-operation-clean-1"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
+name = "unprotected-token-admin-operation-remediated-1"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
+name = "unprotected-token-admin-operation-vulnerable-1"
 version = "0.1.0"
 dependencies = [
  "soroban-sdk",
@@ -2632,6 +2681,20 @@ dependencies = [
 
 [[package]]
 name = "unsafe-map-get-vulnerable-1"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
+name = "unsafe-temporary-storage-remediated-1"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
+name = "unsafe-temporary-storage-vulnerable-1"
 version = "0.1.0"
 dependencies = [
  "soroban-sdk",

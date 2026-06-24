@@ -407,6 +407,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "debug-assert-in-contract"
+version = "0.1.0"
+dependencies = [
+ "clippy_utils",
+ "common",
+ "common-utils",
+ "dylint_linting",
+ "if_chain",
+]
+
+[[package]]
 name = "declarations"
 version = "0.1.0"
 dependencies = [

@@ -13,32 +13,37 @@ use rustc_ast::{tokenstream::TokenTree, AttrArgs, AttrKind, Item, MacCall};
 use rustc_lint::{EarlyContext, EarlyLintPass};
 use rustc_span::{sym, Span};
 
-const LINT_MESSAGE: &str = "Assert causes panic. Instead, return a proper error.";
+const LINT_MESSAGE: &str = "`debug_assert!` compiles to nothing under the Soroban release profile \
+                            (debug-assertions=false); this check does not run on-chain.";
 
 #[expose_lint_info]
-pub static ASSERT_VIOLATION_ERROR_INFO: LintInfo = LintInfo {
+pub static DEBUG_ASSERT_IN_CONTRACT_INFO: LintInfo = LintInfo {
     name: env!("CARGO_PKG_NAME"),
     short_message: LINT_MESSAGE,
-    long_message: "Using assert! macro in production code can cause unexpected panics. \
-                    This violates best practices for smart contract error handling.",
-    severity: Severity::Enhancement,
-    help: "https://coinfabrik.github.io/scout-audit/docs/detectors/rust/assert-violation",
+    long_message: "Soroban contracts are compiled with `debug-assertions = false` and \
+                    `panic = \"abort\"`, so `debug_assert!`, `debug_assert_eq!`, and \
+                    `debug_assert_ne!` lower to dead code and are stripped from the on-chain \
+                    Wasm. A security check written as a debug assertion therefore never \
+                    executes in production. Use `assert!`, `panic_with_error!`, or \
+                    `return Err(..)` for on-chain invariants.",
+    severity: Severity::Medium,
+    help: "https://coinfabrik.github.io/scout-audit/docs/detectors/rust/debug-assert-in-contract",
     vulnerability_class: VulnerabilityClass::ErrorHandling,
 };
 
 dylint_linting::impl_pre_expansion_lint! {
-    pub ASSERT_VIOLATION,
+    pub DEBUG_ASSERT_IN_CONTRACT,
     Warn,
     LINT_MESSAGE,
-    AssertViolation::default()
+    DebugAssertInContract::default()
 }
 
 #[derive(Default)]
-pub struct AssertViolation {
+pub struct DebugAssertInContract {
     test_spans: Vec<Span>,
 }
 
-impl AssertViolation {
+impl DebugAssertInContract {
     fn is_within_test(&self, span: Span) -> bool {
         self.test_spans
             .iter()
@@ -70,14 +75,14 @@ impl AssertViolation {
         })
     }
 
-    fn is_assert_macro(mac: &MacCall) -> bool {
-        mac.path == clippy_sym!(assert)
-            || mac.path == clippy_sym!(assert_eq)
-            || mac.path == clippy_sym!(assert_ne)
+    fn is_debug_assert_macro(mac: &MacCall) -> bool {
+        mac.path == clippy_sym!(debug_assert)
+            || mac.path == clippy_sym!(debug_assert_eq)
+            || mac.path == clippy_sym!(debug_assert_ne)
     }
 }
 
-impl EarlyLintPass for AssertViolation {
+impl EarlyLintPass for DebugAssertInContract {
     fn check_item(&mut self, _: &EarlyContext<'_>, item: &rustc_ast::Item) {
         if Self::is_test_item(item) {
             self.test_spans.push(item.span);
@@ -85,7 +90,7 @@ impl EarlyLintPass for AssertViolation {
     }
 
     fn check_mac(&mut self, cx: &EarlyContext<'_>, mac: &MacCall) {
-        if !Self::is_assert_macro(mac) {
+        if !Self::is_debug_assert_macro(mac) {
             return;
         }
 
@@ -94,6 +99,6 @@ impl EarlyLintPass for AssertViolation {
             return;
         }
 
-        span_lint(cx, ASSERT_VIOLATION, mac.span(), LINT_MESSAGE);
+        span_lint(cx, DEBUG_ASSERT_IN_CONTRACT, mac.span(), LINT_MESSAGE);
     }
 }

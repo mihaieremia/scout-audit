@@ -34,7 +34,7 @@ Install the orchestrator from a pinned revision of this fork:
 
 ```bash
 cargo install --git https://github.com/mihaieremia/scout-audit.git \
-  --rev <commit> cargo-scout-audit --locked
+  --tag v1 cargo-scout-audit --locked
 ```
 
 Then run it against a contract, pointing the driver and detectors at a local checkout of
@@ -78,9 +78,9 @@ jobs:
   scout:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
-      - uses: mihaieremia/scout-audit@<commit-or-tag>
+      - uses: mihaieremia/scout-audit@v1
         with:
           contracts: |
             contracts/pool

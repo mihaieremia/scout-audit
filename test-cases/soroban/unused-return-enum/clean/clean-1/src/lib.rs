@@ -33,7 +33,7 @@ mod test {
     #[test]
     fn safe_div_handles_both_variants() {
         let env = Env::default();
-        let contract_id = env.register_contract(None, Contract);
+        let contract_id = env.register(Contract, ());
         let client = ContractClient::new(&env, &contract_id);
 
         assert_eq!(client.safe_div(&10, &2), 5);

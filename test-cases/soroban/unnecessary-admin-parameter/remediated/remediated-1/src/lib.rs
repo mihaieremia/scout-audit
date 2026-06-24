@@ -37,7 +37,7 @@ mod tests {
     fn test_vulnerable_initialize() {
         // Given
         let env = Env::default();
-        let contract_id = env.register_contract(None, UnnecessaryAdminParameter);
+        let contract_id = env.register(UnnecessaryAdminParameter, ());
         let client = UnnecessaryAdminParameterClient::new(&env, &contract_id);
 
         // When
@@ -55,7 +55,7 @@ mod tests {
     fn test_remediated_set_admin_authorized() {
         // Given
         let env = Env::default();
-        let contract_id = env.register_contract(None, UnnecessaryAdminParameter);
+        let contract_id = env.register(UnnecessaryAdminParameter, ());
         let client = UnnecessaryAdminParameterClient::new(&env, &contract_id);
 
         // When
@@ -79,7 +79,7 @@ mod tests {
     fn test_remediated_set_admin_unauthorized() {
         // Given
         let env = Env::default();
-        let contract_id = env.register_contract(None, UnnecessaryAdminParameter);
+        let contract_id = env.register(UnnecessaryAdminParameter, ());
         let client = UnnecessaryAdminParameterClient::new(&env, &contract_id);
 
         // When

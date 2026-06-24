@@ -63,7 +63,7 @@ mod tests {
     fn balance_of_works() {
         // Given
         let env = Env::default();
-        let contract_id = env.register_contract(None, UnsafeExpect);
+        let contract_id = env.register(UnsafeExpect, ());
         let client = UnsafeExpectClient::new(&env, &contract_id);
 
         // When
@@ -80,7 +80,7 @@ mod tests {
     fn balance_of_expect_works() {
         // Given
         let env = Env::default();
-        let contract_id = env.register_contract(None, UnsafeExpect);
+        let contract_id = env.register(UnsafeExpect, ());
         let client = UnsafeExpectClient::new(&env, &contract_id);
 
         // When - Balance not set

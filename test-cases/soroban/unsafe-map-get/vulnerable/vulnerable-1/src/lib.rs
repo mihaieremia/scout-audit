@@ -26,7 +26,7 @@ mod tests {
     fn test_insert_balances() {
         // Given
         let env = Env::default();
-        let contract_id = env.register_contract(None, UnsafeMapGet);
+        let contract_id = env.register(UnsafeMapGet, ());
         let client = UnsafeMapGetClient::new(&env, &contract_id);
 
         // When

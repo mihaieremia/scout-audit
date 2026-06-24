@@ -46,7 +46,7 @@ mod test {
     fn test_vector_storage() {
         // Given
         let env = Env::default();
-        let contract_id = env.register_contract(None, VectorStorage);
+        let contract_id = env.register(VectorStorage, ());
         let client = VectorStorageClient::new(&env, &contract_id);
 
         // When

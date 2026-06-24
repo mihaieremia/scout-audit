@@ -47,7 +47,7 @@ fn simple_test() {
     e.mock_all_auths();
     let client = IteratorsOverIndexingVulnerableContractClient::new(
         &e,
-        &e.register_contract(None, IteratorsOverIndexingVulnerableContract {}),
+        &e.register(IteratorsOverIndexingVulnerableContract, ()),
     );
     client.init();
     assert_eq!(client.sum(), 10);

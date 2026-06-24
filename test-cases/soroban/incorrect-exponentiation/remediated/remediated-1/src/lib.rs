@@ -44,7 +44,7 @@ mod tests {
     #[test]
     fn simple_test() {
         let env = Env::default();
-        let contract_id = env.register_contract(None, IncorrectExponentiation);
+        let contract_id = env.register(IncorrectExponentiation, ());
         let client = IncorrectExponentiationClient::new(&env, &contract_id);
         env.mock_all_auths();
         let _user = <Address as testutils::Address>::generate(&env);

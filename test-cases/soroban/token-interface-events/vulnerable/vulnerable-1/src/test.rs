@@ -6,7 +6,7 @@ fn initialize_env<'a>() -> (Env, TokenInterfaceEventsClient<'a>, Address, [Addre
     let env = Env::default();
     let token_contract = TokenInterfaceEventsClient::new(
         &env,
-        &env.register_contract(None, TokenInterfaceEvents {}),
+        &env.register(TokenInterfaceEvents, ()),
     );
     let admin = Address::generate(&env);
     let decimals: u32 = 3;
@@ -28,7 +28,7 @@ fn test_init_token() {
     let env = Env::default();
     let token_contract = TokenInterfaceEventsClient::new(
         &env,
-        &env.register_contract(None, TokenInterfaceEvents {}),
+        &env.register(TokenInterfaceEvents, ()),
     );
     let admin = Address::generate(&env);
     let decimals: u32 = 9;

@@ -1,7 +1,8 @@
 #![no_std]
 
 use soroban_sdk::{
-    contract, contractimpl, contracttype, symbol_short, token::TokenInterface, Address, Env, String,
+    contract, contractimpl, contracttype, symbol_short, token::TokenInterface, Address, Env,
+    MuxedAddress, String,
 };
 
 #[derive(Clone)]
@@ -58,7 +59,8 @@ impl TokenInterface for TokenWithHelperEvents {
         Self::read_balance(&env, &id)
     }
 
-    fn transfer(env: Env, from: Address, to: Address, amount: i128) {
+    fn transfer(env: Env, from: Address, to: MuxedAddress, amount: i128) {
+        let to = to.address();
         from.require_auth();
         let from_balance = Self::read_balance(&env, &from);
         let to_balance = Self::read_balance(&env, &to);

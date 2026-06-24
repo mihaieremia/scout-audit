@@ -41,7 +41,7 @@ mod tests {
     fn test_save_user_data() {
         // Given
         let env = Env::default();
-        let contract_id = env.register_contract(None, UserKeyedStorage);
+        let contract_id = env.register(UserKeyedStorage, ());
         let client = UserKeyedStorageClient::new(&env, &contract_id);
         let user = Address::generate(&env);
 

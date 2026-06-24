@@ -33,7 +33,7 @@ mod test {
     fn test_sub_underflow() {
         // Given
         let env = Env::default();
-        let contract_id = env.register_contract(None, IntegerOverflowUnderflow);
+        let contract_id = env.register(IntegerOverflowUnderflow, ());
         let client = IntegerOverflowUnderflowClient::new(&env, &contract_id);
 
         // When

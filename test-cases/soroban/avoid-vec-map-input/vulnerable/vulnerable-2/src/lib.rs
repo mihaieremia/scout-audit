@@ -37,7 +37,7 @@ mod tests {
     #[test]
     fn raw_map_is_stored() {
         let env = Env::default();
-        let contract_id = env.register_contract(None, AvoidVecMapInputMapVulnerable);
+        let contract_id = env.register(AvoidVecMapInputMapVulnerable, ());
         let client = AvoidVecMapInputMapVulnerableClient::new(&env, &contract_id);
 
         let first = Address::generate(&env);

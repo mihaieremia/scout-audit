@@ -1,11 +1,11 @@
 #![no_std]
 
 use soroban_sdk::{
-    contract, contracterror, contractimpl, contracttype, token, Address, Env, String,
+    contract, contracterror, contractimpl, contracttype, token, Address, Env, MuxedAddress, String,
 };
 
 use soroban_sdk::token::TokenInterface;
-use soroban_token_sdk::TokenUtils;
+use soroban_token_sdk::events::{Approve, Burn, Mint, Transfer};
 
 #[derive(Clone)]
 #[contracttype]
@@ -89,7 +89,12 @@ impl TokenInterfaceEvents {
         env.storage()
             .instance()
             .set(&DataKey::Balance(to.clone()), &(previous_balance + amount));
-        TokenUtils::new(&env).events().mint(admin, to, amount);
+        Mint {
+            to,
+            to_muxed_id: None,
+            amount,
+        }
+        .publish(&env);
     }
 
     fn get_allowance(env: Env, from: Address, spender: Address) -> AllowanceFromSpender {
@@ -113,9 +118,13 @@ impl TokenInterfaceEvents {
                 expiration_ledger,
             },
         );
-        TokenUtils::new(&env)
-            .events()
-            .approve(from, spender, amount, expiration_ledger);
+        Approve {
+            from,
+            spender,
+            amount,
+            expiration_ledger,
+        }
+        .publish(&env);
     }
 }
 
@@ -145,7 +154,8 @@ impl token::TokenInterface for TokenInterfaceEvents {
             .unwrap_or(0)
     }
 
-    fn transfer(env: Env, from: Address, to: Address, amount: i128) {
+    fn transfer(env: Env, from: Address, to: MuxedAddress, amount: i128) {
+        let to = to.address();
         from.require_auth();
         let from_balance = Self::balance(env.clone(), from.clone());
         let to_balance = Self::balance(env.clone(), to.clone());
@@ -157,7 +167,13 @@ impl token::TokenInterface for TokenInterfaceEvents {
             .instance()
             .set(&DataKey::Balance(to.clone()), &(to_balance + amount));
 
-        TokenUtils::new(&env).events().transfer(from, to, amount);
+        Transfer {
+            from,
+            to,
+            to_muxed_id: None,
+            amount,
+        }
+        .publish(&env);
     }
 
     fn transfer_from(env: Env, spender: Address, from: Address, to: Address, amount: i128) {
@@ -182,7 +198,13 @@ impl token::TokenInterface for TokenInterfaceEvents {
             &allowance,
         );
 
-        TokenUtils::new(&env).events().transfer(from, to, amount);
+        Transfer {
+            from,
+            to,
+            to_muxed_id: None,
+            amount,
+        }
+        .publish(&env);
     }
 
     fn burn(env: Env, from: Address, amount: i128) {
@@ -192,7 +214,7 @@ impl token::TokenInterface for TokenInterfaceEvents {
         env.storage()
             .instance()
             .set(&DataKey::Balance(from.clone()), &(from_balance - amount));
-        TokenUtils::new(&env).events().burn(from, amount);
+        Burn { from, amount }.publish(&env);
     }
 
     fn burn_from(env: Env, spender: Address, from: Address, amount: i128) {
@@ -210,7 +232,7 @@ impl token::TokenInterface for TokenInterfaceEvents {
             &DataKey::AllowanceFromSpender(from.clone(), spender),
             &allowance,
         );
-        TokenUtils::new(&env).events().burn(from, amount);
+        Burn { from, amount }.publish(&env);
     }
 
     fn decimals(env: Env) -> u32 {

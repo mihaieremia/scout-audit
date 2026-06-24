@@ -63,7 +63,7 @@ mod tests {
     #[test]
     fn stores_one_address_at_a_time() {
         let env = Env::default();
-        let contract_id = env.register_contract(None, AvoidVecMapInputRemediated);
+        let contract_id = env.register(AvoidVecMapInputRemediated, ());
         let client = AvoidVecMapInputRemediatedClient::new(&env, &contract_id);
 
         let first = Address::generate(&env);
@@ -81,7 +81,7 @@ mod tests {
     #[test]
     fn rejects_duplicates() {
         let env = Env::default();
-        let contract_id = env.register_contract(None, AvoidVecMapInputRemediated);
+        let contract_id = env.register(AvoidVecMapInputRemediated, ());
         let client = AvoidVecMapInputRemediatedClient::new(&env, &contract_id);
 
         let address = Address::generate(&env);

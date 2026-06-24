@@ -49,7 +49,7 @@ mod tests {
     fn set_admin_authorizes_both() {
         // Given
         let env = Env::default();
-        let contract_id = env.register_contract(None, MissingNewAdminAuth);
+        let contract_id = env.register(MissingNewAdminAuth, ());
         let client = MissingNewAdminAuthClient::new(&env, &contract_id);
         let admin = Address::generate(&env);
         let new_admin = Address::generate(&env);

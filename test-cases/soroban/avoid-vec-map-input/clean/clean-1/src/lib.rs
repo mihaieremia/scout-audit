@@ -31,7 +31,7 @@ mod tests {
     fn test_record() {
         // Given
         let env = Env::default();
-        let contract_id = env.register_contract(None, AvoidVecMapInputClean);
+        let contract_id = env.register(AvoidVecMapInputClean, ());
         let client = AvoidVecMapInputCleanClient::new(&env, &contract_id);
 
         // When

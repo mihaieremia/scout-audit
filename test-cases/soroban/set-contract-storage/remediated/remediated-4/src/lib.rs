@@ -37,7 +37,7 @@ mod tests {
     fn increment() {
         // Given
         let env = Env::default();
-        let contract_id = env.register_contract(None, SetContractStorage);
+        let contract_id = env.register(SetContractStorage, ());
         let client = SetContractStorageClient::new(&env, &contract_id);
         env.mock_all_auths();
         let user = <Address as testutils::Address>::generate(&env);

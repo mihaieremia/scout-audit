@@ -53,7 +53,7 @@ mod tests {
     fn balance_of_works() {
         // Given
         let env = Env::default();
-        let contract_id = env.register_contract(None, UnprotectedMappingOperation);
+        let contract_id = env.register(UnprotectedMappingOperation, ());
         let client = UnprotectedMappingOperationClient::new(&env, &contract_id);
 
         // When

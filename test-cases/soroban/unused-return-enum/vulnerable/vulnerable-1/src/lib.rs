@@ -40,7 +40,7 @@ mod tests {
     fn get_percentage_difference_panics() {
         // Given
         let env = Env::default();
-        let contract_id = env.register_contract(None, UnusedReturnEnum);
+        let contract_id = env.register(UnusedReturnEnum, ());
         let client = UnusedReturnEnumClient::new(&env, &contract_id);
 
         // When

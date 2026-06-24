@@ -43,7 +43,7 @@ mod tests {
     fn try_get_errors_on_different_values() {
         // Given
         let env = Env::default();
-        let contract_id = env.register_contract(None, UnsafeMapGet);
+        let contract_id = env.register(UnsafeMapGet, ());
         let client = UnsafeMapGetClient::new(&env, &contract_id);
 
         // When
@@ -64,7 +64,7 @@ mod tests {
     fn try_get_errors_on_different_keys() {
         // Given
         let env = Env::default();
-        let contract_id = env.register_contract(None, UnsafeMapGet);
+        let contract_id = env.register(UnsafeMapGet, ());
         let client = UnsafeMapGetClient::new(&env, &contract_id);
 
         // When

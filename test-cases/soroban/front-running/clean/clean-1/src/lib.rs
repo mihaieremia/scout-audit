@@ -61,7 +61,7 @@ mod test {
         let admin = Address::generate(&env);
         let asset_contract = env.register_stellar_asset_contract_v2(admin);
 
-        let contract_id = env.register_contract(None, Contract);
+        let contract_id = env.register(Contract, ());
         let client = ContractClient::new(&env, &contract_id);
         client.init(&asset_contract.address());
 

@@ -72,7 +72,7 @@ mod tests {
         let admin = Address::generate(&env);
         let asset_contract = env.register_stellar_asset_contract_v2(admin);
 
-        let contract_id = env.register_contract(None, FrontRunning);
+        let contract_id = env.register(FrontRunning, ());
         let client = FrontRunningClient::new(&env, &contract_id);
         client.init(&asset_contract.address());
 
@@ -113,7 +113,7 @@ mod tests {
         let admin = Address::generate(&env);
         let asset_contract = env.register_stellar_asset_contract_v2(admin);
 
-        let contract_id = env.register_contract(None, FrontRunning);
+        let contract_id = env.register(FrontRunning, ());
         let client = FrontRunningClient::new(&env, &contract_id);
         client.init(&asset_contract.address());
 
@@ -149,7 +149,7 @@ mod tests {
         let admin = Address::generate(&env);
         let asset_contract = env.register_stellar_asset_contract_v2(admin);
 
-        let contract_id = env.register_contract(None, FrontRunning);
+        let contract_id = env.register(FrontRunning, ());
         let client = FrontRunningClient::new(&env, &contract_id);
         client.init(&asset_contract.address());
 

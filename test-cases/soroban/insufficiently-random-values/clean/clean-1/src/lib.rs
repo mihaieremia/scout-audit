@@ -35,7 +35,7 @@ mod test {
     #[test]
     fn random_in_range_is_bounded() {
         let env = Env::default();
-        let contract_id = env.register_contract(None, Contract);
+        let contract_id = env.register(Contract, ());
         let client = ContractClient::new(&env, &contract_id);
 
         let value = client.random_in_range(&100);

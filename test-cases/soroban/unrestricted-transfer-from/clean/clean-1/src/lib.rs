@@ -31,7 +31,7 @@ mod tests {
     fn deposit_requires_from_auth() {
         // Given
         let env = Env::default();
-        let contract_id = env.register_contract(None, UnrestrictedTransferFrom);
+        let contract_id = env.register(UnrestrictedTransferFrom, ());
         let client = UnrestrictedTransferFromClient::new(&env, &contract_id);
         let token = Address::generate(&env);
         let from = Address::generate(&env);

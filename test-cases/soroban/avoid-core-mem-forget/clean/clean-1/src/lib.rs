@@ -32,7 +32,7 @@ mod test {
     #[test]
     fn sum_and_discard_returns_total() {
         let env = Env::default();
-        let contract_id = env.register_contract(None, Contract);
+        let contract_id = env.register(Contract, ());
         let client = ContractClient::new(&env, &contract_id);
 
         let mut values = Vec::new(&env);

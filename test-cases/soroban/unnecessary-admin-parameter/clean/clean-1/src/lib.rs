@@ -42,7 +42,7 @@ mod tests {
     fn set_config_requires_admin_auth() {
         // Given
         let env = Env::default();
-        let contract_id = env.register_contract(None, UnnecessaryAdminParameter);
+        let contract_id = env.register(UnnecessaryAdminParameter, ());
         let client = UnnecessaryAdminParameterClient::new(&env, &contract_id);
         let admin = Address::generate(&env);
 

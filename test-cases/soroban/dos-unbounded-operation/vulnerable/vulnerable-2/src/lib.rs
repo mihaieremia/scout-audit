@@ -31,7 +31,7 @@ mod tests {
     fn test_for_loop() {
         // Given
         let env = Env::default();
-        let contract_id = env.register_contract(None, DosUnboundedOperation);
+        let contract_id = env.register(DosUnboundedOperation, ());
         let client = DosUnboundedOperationClient::new(&env, &contract_id);
 
         // When

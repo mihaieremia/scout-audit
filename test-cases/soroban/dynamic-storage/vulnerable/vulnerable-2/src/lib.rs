@@ -29,7 +29,7 @@ mod test {
     fn test_map_storage() {
         // Given
         let env = Env::default();
-        let contract_id = env.register_contract(None, MapStorage);
+        let contract_id = env.register(MapStorage, ());
         let client = MapStorageClient::new(&env, &contract_id);
 
         // When

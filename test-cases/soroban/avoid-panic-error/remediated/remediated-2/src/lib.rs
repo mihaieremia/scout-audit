@@ -31,7 +31,7 @@ mod tests {
     fn add() {
         // Given
         let env = Env::default();
-        let contract_id = env.register_contract(None, AvoidPanicError);
+        let contract_id = env.register(AvoidPanicError, ());
         let client = AvoidPanicErrorClient::new(&env, &contract_id);
 
         // When
@@ -50,7 +50,7 @@ mod tests {
     fn overflow() {
         // Given
         let env = Env::default();
-        let contract_id = env.register_contract(None, AvoidPanicError);
+        let contract_id = env.register(AvoidPanicError, ());
         let client = AvoidPanicErrorClient::new(&env, &contract_id);
 
         // When

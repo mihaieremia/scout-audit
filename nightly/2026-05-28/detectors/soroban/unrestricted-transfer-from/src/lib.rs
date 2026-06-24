@@ -1,0 +1,260 @@
+#![feature(rustc_private)]
+
+extern crate rustc_ast;
+extern crate rustc_hir;
+extern crate rustc_middle;
+extern crate rustc_span;
+
+use common::{
+    declarations::{Severity, VulnerabilityClass},
+    macros::expose_lint_info,
+};
+use rustc_hir::PatKind;
+use rustc_hir::{
+    Body, Expr, ExprKind,
+    intravisit::{Visitor, walk_expr},
+};
+use rustc_lint::{LateContext, LateLintPass};
+use rustc_middle::mir::{BasicBlock, BasicBlocks, Local, Operand, StatementKind, TerminatorKind};
+use rustc_span::Span;
+use std::collections::HashSet;
+
+const LINT_MESSAGE: &str = "This argument comes from a user-supplied argument";
+
+#[expose_lint_info]
+pub static UNRESTRICTED_TRANSFER_FROM_INFO: LintInfo = LintInfo {
+    name: env!("CARGO_PKG_NAME"),
+    short_message: LINT_MESSAGE,
+    long_message: "In an smart contract, allowing unrestricted transfer_from operations poses a significant vulnerability. When from arguments for that function is provided directly by the user, this might enable the withdrawal of funds from any actor with token approval on the contract. This could result in unauthorized transfers and loss of funds. To mitigate this vulnerability, instead of allowing an arbitrary from address, the from address should be restricted.",
+    severity: Severity::Critical,
+    help: "https://coinfabrik.github.io/scout-audit/docs/detectors/soroban/unrestricted-transfer-from",
+    vulnerability_class: VulnerabilityClass::Authorization,
+};
+
+dylint_linting::impl_late_lint! {
+    pub UNRESTRICTED_TRANSFER_FROM,
+    Warn,
+    LINT_MESSAGE,
+    UnrestrictedTransferFrom::default()
+}
+
+#[derive(Default)]
+pub struct UnrestrictedTransferFrom {}
+impl UnrestrictedTransferFrom {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
+impl<'tcx> LateLintPass<'tcx> for UnrestrictedTransferFrom {
+    fn check_fn(
+        &mut self,
+        cx: &LateContext<'tcx>,
+        _: rustc_hir::intravisit::FnKind<'tcx>,
+        _fn_decl: &'tcx rustc_hir::FnDecl<'tcx>,
+        body: &'tcx rustc_hir::Body<'tcx>,
+        _: Span,
+        localdef: rustc_span::def_id::LocalDefId,
+    ) {
+        struct UnrestrictedTransferFromFinder<'tcx, 'tcx_ref> {
+            cx: &'tcx_ref LateContext<'tcx>,
+            def_id: Option<rustc_span::def_id::DefId>,
+            //pusharg_def_id: Option<rustc_span::def_id::DefId>,
+            span: Option<Span>,
+            from_ref: bool,
+            the_body: &'tcx Body<'tcx>,
+            /// Name of the `from` parameter used by `transfer_from`, if it is a
+            /// user-supplied argument.
+            from_param_name: Option<String>,
+            /// Parameter names on which `require_auth`/`require_auth_for_args` is
+            /// called anywhere in the body. Authorizing `from` makes the transfer safe.
+            authorized_param_names: HashSet<String>,
+        }
+
+        impl<'tcx> Visitor<'tcx> for UnrestrictedTransferFromFinder<'tcx, '_> {
+            fn visit_expr(&mut self, expr: &'tcx Expr<'_>) {
+                if let ExprKind::MethodCall(path_segment, receiver, methodargs, ..) = expr.kind {
+                    let method_name = path_segment.ident.name.to_string();
+
+                    // Record `addr.require_auth()` / `addr.require_auth_for_args(..)`
+                    // where `addr` resolves to a function parameter.
+                    if (method_name == "require_auth" || method_name == "require_auth_for_args")
+                        && let ExprKind::Path(rustc_hir::QPath::Resolved(
+                            _,
+                            rustc_hir::Path { segments, .. },
+                        )) = receiver.peel_borrows().kind
+                        && let Some(seg) = segments.first()
+                    {
+                        self.authorized_param_names
+                            .insert(seg.ident.name.to_string());
+                    }
+
+                    if method_name == "transfer_from" {
+                        self.def_id = self
+                            .cx
+                            .typeck_results()
+                            .type_dependent_def_id(path_segment.hir_id);
+                        let mut possible_params = Vec::new();
+                        for i in 0..self.the_body.params.len() {
+                            if let PatKind::Binding(_, _, name, _) =
+                                self.the_body.params[i].pat.kind
+                            {
+                                possible_params.push(name.to_string());
+                            }
+                        }
+                        let from_param = methodargs[1];
+                        if let ExprKind::AddrOf(_, _, new_exp, ..) = from_param.kind
+                            && let ExprKind::Path(
+                                rustc_hir::QPath::Resolved(_, rustc_hir::Path { segments, .. }),
+                                ..,
+                            ) = new_exp.kind
+                        {
+                            let from_ref_param = segments.first();
+                            let from_addr;
+                            if let Some(from_ref_param) = from_ref_param {
+                                from_addr = from_ref_param;
+                                if possible_params.contains(&from_addr.ident.name.to_string()) {
+                                    self.span = Some(from_addr.ident.span);
+                                    self.from_ref = true;
+                                    self.from_param_name = Some(from_addr.ident.name.to_string());
+                                }
+                            }
+                        }
+                    }
+                    self.def_id = self
+                        .cx
+                        .typeck_results()
+                        .type_dependent_def_id(path_segment.hir_id);
+                }
+                walk_expr(self, expr);
+            }
+        }
+
+        let mut utf_storage = UnrestrictedTransferFromFinder {
+            cx,
+            def_id: None,
+            span: None,
+            from_ref: false,
+            the_body: body,
+            from_param_name: None,
+            authorized_param_names: HashSet::new(),
+        };
+
+        let mir_body = cx.tcx.optimized_mir(localdef.to_def_id());
+
+        walk_expr(&mut utf_storage, body.value);
+
+        // A `from` address that the caller has authorized via `require_auth` is not an
+        // unrestricted transfer: the user proved ownership of the funds being moved.
+        let from_is_authorized = utf_storage
+            .from_param_name
+            .as_ref()
+            .is_some_and(|name| utf_storage.authorized_param_names.contains(name));
+
+        if utf_storage.from_ref && !from_is_authorized {
+            clippy_utils::diagnostics::span_lint(
+                cx,
+                UNRESTRICTED_TRANSFER_FROM,
+                utf_storage.span.unwrap(),
+                LINT_MESSAGE,
+            );
+        }
+
+        if utf_storage.def_id.is_none() {
+            return;
+        }
+        //vector with function args and variables derived from those args
+        let mut tainted_locals: Vec<Local> = mir_body.args_iter().collect();
+
+        for bb in mir_body.basic_blocks.iter() {
+            for statement in &bb.statements {
+                if let StatementKind::Assign(assign) = &statement.kind {
+                    match &assign.1 {
+                        rustc_middle::mir::Rvalue::Ref(_, _, origplace)
+                        | rustc_middle::mir::Rvalue::RawPtr(_, origplace)
+                        | rustc_middle::mir::Rvalue::CopyForDeref(origplace) => {
+                            if tainted_locals
+                                .clone()
+                                .into_iter()
+                                .any(|local| local == origplace.local)
+                            {
+                                tainted_locals.push(assign.0.local);
+                            }
+                        }
+                        rustc_middle::mir::Rvalue::Use(operand, _) => match &operand {
+                            Operand::Copy(origplace) | Operand::Move(origplace) => {
+                                if tainted_locals
+                                    .clone()
+                                    .into_iter()
+                                    .any(|local| local == origplace.local)
+                                {
+                                    tainted_locals.push(assign.0.local);
+                                }
+                            }
+                            Operand::Constant(_) => todo!(),
+                            Operand::RuntimeChecks(_) => {}
+                        },
+                        _ => {}
+                    }
+                }
+            }
+        }
+        for bb in mir_body.basic_blocks.iter() {
+            if let TerminatorKind::Call {
+                func,
+                args: _,
+                destination,
+                target,
+                ..
+            } = &bb.terminator().kind
+                && let Operand::Constant(cont) = func
+                && let rustc_middle::mir::Const::Val(_, val_type) = &cont.const_
+                && let rustc_middle::ty::TyKind::FnDef(def, _) = val_type.kind()
+                && utf_storage.def_id.is_some_and(|id| &id == def)
+                && target.is_some()
+            {
+                //here the terminator is the call to new, the destination has the place with the selector
+                //from here on, what I do is look for where the selector is used and where user given args are pushed to it
+                let mut tainted_selector_places: Vec<Local> = vec![destination.local];
+                fn navigate_trough_bbs(
+                    _cx: &LateContext,
+                    bb: &BasicBlock,
+                    bbs: &BasicBlocks,
+                    _tainted_locals: &Vec<Local>,
+                    _tainted_selector_places: &mut Vec<Local>,
+                    _utf_storage: &UnrestrictedTransferFromFinder,
+                ) {
+                    if let TerminatorKind::Call {
+                        func,
+                        args: _,
+                        fn_span: _,
+                        target,
+                        ..
+                    } = &bbs[*bb].terminator().kind
+                        && let Operand::Constant(cst) = func
+                        && let rustc_middle::mir::Const::Val(_, val_type) = &cst.const_
+                        && let rustc_middle::ty::TyKind::FnDef(_def, _) = val_type.kind()
+                        && target.is_some()
+                    {
+                        navigate_trough_bbs(
+                            _cx,
+                            &target.unwrap(),
+                            bbs,
+                            _tainted_locals,
+                            _tainted_selector_places,
+                            _utf_storage,
+                        );
+                    }
+                }
+                navigate_trough_bbs(
+                    cx,
+                    &target.unwrap(),
+                    &mir_body.basic_blocks,
+                    &tainted_locals,
+                    &mut tainted_selector_places,
+                    &utf_storage,
+                );
+            }
+        }
+    }
+}

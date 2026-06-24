@@ -1,0 +1,13 @@
+[workspace]
+exclude = [".cargo", ".vscode", "target"]
+members = ["*"]
+resolver = "2"
+
+[workspace.dependencies]
+clippy_utils = "0.1.98"
+common = { path = "../../common" }
+common_detectors = { path = "../../common/detectors", package = "common-detectors" }
+dylint_internal = "=6.0.1"
+dylint_linting = "=6.0.1"
+if_chain = "=1.0.3"
+itertools = { version = "=0.13" }

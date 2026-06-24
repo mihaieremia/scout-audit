@@ -1,0 +1,13 @@
+[package]
+edition = "2021"
+name = "analysis"
+version = "0.1.0"
+
+[dependencies]
+if_chain = "=1.0.3"
+clippy_utils = "0.1.98"
+paste = "1.0"
+dylint_linting = "=6.0.1"
+
+[package.metadata.rust-analyzer]
+rustc_private = true

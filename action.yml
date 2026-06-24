@@ -39,6 +39,13 @@ inputs:
     description: 'Extra arguments passed through verbatim to `cargo scout-audit`.'
     required: false
     default: ''
+  env:
+    description: >-
+      Extra environment variables for the build/analysis, as newline-separated
+      KEY=VALUE pairs. Applied on top of the action defaults (e.g. override the
+      soroban-sdk spec-shaking shim, or pass RUSTFLAGS / feature toggles).
+    required: false
+    default: ''
 
 outputs:
   report-dir:
@@ -74,11 +81,13 @@ runs:
         CONTRACTS: ${{ inputs.contracts }}
         EXTRA: ${{ inputs.extra-args }}
         FAIL_ON_FINDINGS: ${{ inputs.fail-on-findings }}
+        EXTRA_ENV: ${{ inputs.env }}
         # soroban-sdk's `experimental_spec_shaking_v2` build script hard-errors under
         # plain `cargo check` (it expects `stellar contract build`). Scout only
         # type-checks + lints — it never emits a deployable artifact — so signalling
         # build-system support lets the dependency compile and the contract actually
-        # get analyzed instead of silently reporting zero findings.
+        # get analyzed instead of silently reporting zero findings. Override via the
+        # `env` input if needed.
         SOROBAN_SDK_BUILD_SYSTEM_SUPPORTS_SPEC_SHAKING_V2: "1"
       run: |
         set -euo pipefail
@@ -87,6 +96,16 @@ runs:
         # sccache caches rustc output and would silently skip the dylint lint pass on
         # cache hits, producing stale (zero) findings — never run Scout under it.
         unset RUSTC_WRAPPER || true
+
+        # Apply any caller-supplied environment (newline-separated KEY=VALUE),
+        # so build toggles can be set/overridden without changing the action.
+        if [ -n "${EXTRA_ENV:-}" ]; then
+          while IFS= read -r kv; do
+            [ -n "$kv" ] || continue
+            # shellcheck disable=SC2163
+            export "$kv"
+          done <<< "$EXTRA_ENV"
+        fi
 
         exclude_arg=()
         [ -n "$EXCLUDE" ] && exclude_arg=(--exclude "$EXCLUDE")

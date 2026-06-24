@@ -3,7 +3,7 @@
 This fork of CoinFabrik's [`scout-audit`](https://github.com/CoinFabrik/scout-audit)
 modernizes the tool, narrows it to **Soroban only**, sharpens detector accuracy on real
 lending-protocol code, and adds new detectors. Everything below is the delta on
-`xoxno/soroban-wasm32v1-none` relative to upstream `main`.
+`soroban` relative to upstream `main`.
 
 ## Scope — Soroban only
 

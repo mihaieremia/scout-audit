@@ -198,6 +198,13 @@ pub fn run_scout(mut opts: Scout) -> Result<ScoutResult> {
         .into_iter()
         .map(Finding::new)
         .collect::<Vec<_>>();
+
+    if !inside_vscode && !raw_findings.iter().any(|x| x.reason() == "build-finished") {
+        return Err(anyhow!(
+            "The lint pass did not run: dylint gave no build result. Check the output above for errors."
+        ));
+    }
+
     let crates = get_crates(&raw_findings, &project_info.packages, &metadata)?;
     let detector_names = HashSet::from_iter(filtered_detectors.iter().cloned());
 

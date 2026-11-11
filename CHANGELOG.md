@@ -11,7 +11,7 @@ code. This is the delta of the `soroban` branch against upstream `main`.
 
 ## Toolchain
 
-- Detector toolchain `nightly-2026-05-28` (rustc 1.98), `clippy_utils` 0.1.98, `dylint` 6.0.1, orchestrator `cargo` 0.97.
+- Detector toolchain `nightly-2026-05-28` (rustc 1.98), `clippy_utils` 0.1.98, `dylint` 6.3.2 (detector libraries on `dylint_linting` 6.0.1), orchestrator `cargo` 0.97.
 - Test corpus on `soroban-sdk` 27. The previous nightly could not compile soroban-sdk 26/27, so the fork is what makes analysis of current Soroban contracts possible.
 
 ## Detector accuracy
